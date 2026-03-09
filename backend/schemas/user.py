@@ -15,8 +15,8 @@ class UserResponse(BaseModel):
     full_name: str
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    class Config: 
+        from_attributes = True # it tells we are allowed to read data from object attributes not only from dict
 
 
 class UserProfileCreate(BaseModel):
@@ -65,4 +65,4 @@ class UserProfileResponse(BaseModel):
     updated_at: Optional[datetime] = None
     
     class Config:
-        from_attributes = True
+        from_attributes = True # it tells we are allowed to read data from object attributes not only from dict
