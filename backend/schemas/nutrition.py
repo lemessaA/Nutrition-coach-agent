@@ -1,7 +1,9 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
-
+"""
+Nutrition-related Pydantic schemas
+"""
 
 class NutritionQuestionRequest(BaseModel):
     question: str
