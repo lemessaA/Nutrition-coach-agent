@@ -1,7 +1,9 @@
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-
+"""
+Meal plan related Pydantic schemas
+"""
 
 class MealItem(BaseModel):
     name: str
