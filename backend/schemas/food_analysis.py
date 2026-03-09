@@ -1,7 +1,9 @@
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-
+"""
+Food analysis related Pydantic schemas
+"""
 
 class FoodItem(BaseModel):
     name: str
@@ -14,14 +16,14 @@ class FoodItem(BaseModel):
 
 
 class FoodAnalysisRequest(BaseModel):
-    food_input: str
-    serving_size: Optional[str] = None
+    food_input: str # e.g., "1 apple", "200g chicken breast"
+    serving_size: Optional[str] = None # e.g., "1 medium", "200g"
 
 
 class FoodAnalysisResponse(BaseModel):
-    id: int
-    user_id: int
-    food_input: str
+    id: int # Database ID
+    user_id: int # User ID
+    food_input: str # Original food input
     calories: Optional[float] = None
     protein: Optional[float] = None
     carbs: Optional[float] = None
