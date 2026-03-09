@@ -1,20 +1,22 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
-
+"""
+Chat related Pydantic schemas
+"""
 
 class ChatMessageCreate(BaseModel):
-    message: str
-    session_id: str
+    message: str # User message
+    session_id: str # Session ID
 
 
 class ChatMessageResponse(BaseModel):
-    id: int
-    user_id: int
-    message: str
-    response: str
-    agent_type: str
-    session_id: str
+    id: int # Database ID
+    user_id: int # User ID
+    message: str # User message
+    response: str # Agent response
+    agent_type: str # Agent type
+    session_id: str # Session ID
     created_at: datetime
     
     class Config:
@@ -22,13 +24,13 @@ class ChatMessageResponse(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    message: str
-    session_id: Optional[str] = None
-    user_id: Optional[int] = None
+    message: str # User message
+    session_id: Optional[str] = None # Session ID
+    user_id: Optional[int] = None # User ID
 
 
 class ChatResponse(BaseModel):
-    response: str
-    agent_type: str
-    session_id: str
-    suggestions: Optional[list] = None
+    response: str # Agent response
+    agent_type: str # Agent type
+    session_id: str # Session ID
+    suggestions: Optional[list] = None # Suggested follow-up questions
