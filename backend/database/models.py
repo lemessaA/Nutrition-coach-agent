@@ -4,7 +4,7 @@ from sqlalchemy.sql import func
 from enum import Enum as PyEnum
 from database.connection import Base
 
-
+# pyEnum creation of collection name/values pairs
 class GenderEnum(PyEnum):
     male = "male"
     female = "female"
@@ -35,10 +35,10 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
-    profile = relationship("UserProfile", back_populates="user", uselist=False)
-    meal_plans = relationship("MealPlan", back_populates="user")
-    chat_messages = relationship("ChatMessage", back_populates="user")
-    food_analyses = relationship("FoodAnalysis", back_populates="user")
+    profile = relationship("UserProfile", back_populates="user", uselist=False) # one-to-one relationship
+    meal_plans = relationship("MealPlan", back_populates="user") # one-to-many relationship
+    chat_messages = relationship("ChatMessage", back_populates="user") # one-to-many relationship
+    food_analyses = relationship("FoodAnalysis", back_populates="user") # one-to-many relationship
 
 
 class UserProfile(Base):
@@ -74,7 +74,7 @@ class UserProfile(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
-    user = relationship("User", back_populates="profile")
+    user = relationship("User", back_populates="profile") # many-to-one relationship that means many user profiles can belong to one user
 
 
 class MealPlan(Base):
@@ -97,7 +97,7 @@ class MealPlan(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
-    user = relationship("User", back_populates="meal_plans")
+    user = relationship("User", back_populates="meal_plans") # many-to-one relationship that means many meal plans can belong to one user
 
 
 class ChatMessage(Base):
@@ -114,7 +114,7 @@ class ChatMessage(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
-    user = relationship("User", back_populates="chat_messages")
+    user = relationship("User", back_populates="chat_messages") # many-to-one relationship that means many chat messages can belong to one user
 
 
 class FoodAnalysis(Base):
@@ -141,7 +141,7 @@ class FoodAnalysis(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
-    user = relationship("User", back_populates="food_analyses")
+    user = relationship("User", back_populates="food_analyses") # many-to-one relationship that means many food analyses can belong to one user
 
 
 class NutritionKnowledge(Base):
