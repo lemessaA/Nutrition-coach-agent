@@ -1,12 +1,15 @@
 fastapi
 uvicorn[standard]
 langchain
+langchain-community
 langchain-openai
 langchain-groq
 langgraph
 sqlalchemy
 alembic
 pydantic
+pydantic-settings
+pydantic[email]
 python-multipart
 python-jose[cryptography]
 passlib[bcrypt]
