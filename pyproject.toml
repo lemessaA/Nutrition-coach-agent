@@ -36,6 +36,5 @@ dependencies = [
     "psycopg2-binary",
 ]
 
-[tool.setuptools.packages.find]
-where = ["backend"]
-namespaces = true
+[tool.setuptools]
+py-modules = []
