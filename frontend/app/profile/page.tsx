@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { User, Heart, Target, Activity, Save, Calculator } from 'lucide-react'
+import { User, Heart, Target, Activity, Save, Calculator, AlertCircle as AlertTriangle } from 'lucide-react'
 
 interface UserProfile {
   email: string
@@ -38,6 +38,7 @@ export default function ProfilePage() {
   const [calculatedTargets, setCalculatedTargets] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [savedProfile, setSavedProfile] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleInputChange = (field: keyof UserProfile, value: any) => {
     setProfile(prev => ({ ...prev, [field]: value }))
@@ -70,28 +71,70 @@ export default function ProfilePage() {
 
   const saveProfile = async () => {
     setIsLoading(true)
+    setError(null)
     try {
-      // Make API call to save profile
+      // Validate required fields
+      if (!profile.age || !profile.weight || !profile.height || !profile.gender || !profile.activityLevel || !profile.goal) {
+        throw new Error('Please fill in all required fields (age, weight, height, gender, activity level, and goal)')
+      }
+
+      // Make API call to save health profile
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       console.log('API URL:', apiUrl)
       
-      const response = await fetch(`${apiUrl}/api/v1/profile`, {
+      // First create basic user if needed
+      const basicProfile = {
+        email: profile.email || 'user@example.com',
+        full_name: profile.fullName || 'User'
+      }
+      
+      const userResponse = await fetch(`${apiUrl}/api/v1/profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(profile)
+        body: JSON.stringify(basicProfile)
       })
 
-      if (response.ok) {
-        const data = await response.json()
+      if (!userResponse.ok) {
+        throw new Error('Failed to create user profile')
+      }
+
+      const userData = await userResponse.json()
+      const userId = userData.id
+
+      // Then save health profile
+      const healthProfile = {
+        age: parseInt(profile.age) || 0,
+        weight: parseFloat(profile.weight) || 0,
+        height: parseFloat(profile.height) || 0,
+        gender: profile.gender,
+        activity_level: profile.activityLevel,
+        goal: profile.goal,
+        dietary_restrictions: profile.dietaryRestrictions,
+        allergies: profile.allergies,
+        preferences: profile.preferences
+      }
+
+      const healthResponse = await fetch(`${apiUrl}/api/v1/profile/${userId}/health`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(healthProfile)
+      })
+
+      if (healthResponse.ok) {
+        const data = await healthResponse.json()
         setSavedProfile(true)
         setTimeout(() => setSavedProfile(false), 3000)
+        console.log('Health profile saved:', data)
       } else {
-        throw new Error('Failed to save profile')
+        throw new Error('Failed to save health profile')
       }
     } catch (error) {
       console.error('Error saving profile:', error)
+      setError(error.message || 'Failed to save profile')
     } finally {
       setIsLoading(false)
     }
@@ -117,6 +160,16 @@ export default function ProfilePage() {
         <h1 className="text-3xl font-bold gradient-text mb-2">Health Profile</h1>
         <p className="text-gray-600">Create your personalized nutrition profile</p>
       </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center gap-2 text-red-800">
+            <AlertTriangle className="w-5 h-5" />
+            <span className="font-semibold">Error</span>
+          </div>
+          <p className="text-red-700 text-sm mt-1">{error}</p>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Main Profile Form */}

@@ -1,23 +1,214 @@
-# Nutrition Coach AI Agent
+# Nutrition Coach AI
 
-A comprehensive AI-powered nutrition coaching system built with FastAPI, LangChain, and Next.js. This system provides personalized meal planning, nutrition advice, and habit coaching through multiple specialized AI agents.
+🌟 A comprehensive AI-powered nutrition coaching platform that provides personalized meal planning, food analysis, and health guidance using advanced machine learning.
 
-## Features
+## 🎯 Mission
+Empower users to achieve their health goals through intelligent nutrition coaching, personalized meal plans, and data-driven insights.
 
-### 🤖 AI-Powered Coaching
-- **User Profile Agent**: Collects and manages health information with automatic BMR/TDEE calculations
-- **Meal Planner Agent**: Generates personalized daily and weekly meal plans with recipes
-- **Nutrition Knowledge Agent**: RAG-powered Q&A system with evidence-based nutrition information
-- **Food Analyzer Agent**: Analyzes meals and tracks nutritional intake
-- **Coaching Agent**: Provides motivation, habit guidance, and behavioral support
-- **Market Intelligence Agent**: Offers budget-friendly nutrition options and market insights
+## 🚀 Features
 
-### 🎯 Core Capabilities
-- Personalized nutrition recommendations based on health goals
-- Automated meal planning with shopping lists
-- Food analysis with calorie and macro breakdowns
-- Nutrition Q&A with scientific backing
-- Habit coaching and motivation
+### Core Functionality
+- **AI-Powered Chat**: Real-time nutrition coaching with Groq LLM
+- **Personalized Meal Plans**: Custom meal plans based on user profiles and goals
+- **Food Analysis**: Detailed nutritional analysis of foods and meals
+- **Health Profiles**: Comprehensive user health tracking and goal setting
+- **Market Intelligence**: Nutrition market trends and insights
+
+### Technical Features
+- **Backend**: FastAPI with modular agent architecture
+- **Frontend**: Next.js 14 with TypeScript and Tailwind CSS
+- **AI Integration**: Groq LLM for intelligent responses
+- **Database**: SQLite with SQLAlchemy ORM
+- **Vector Store**: FAISS for nutrition knowledge base
+
+## 🏗️ Architecture
+
+### Backend Components
+- **API Layer**: RESTful endpoints with FastAPI
+- **Agent System**: Specialized AI agents for different tasks
+- **LLM Service**: Abstracted AI service supporting multiple providers
+- **Database Layer**: SQLAlchemy models and migrations
+- **RAG System**: Retrieval-augmented generation for nutrition knowledge
+
+### Frontend Components
+- **Pages**: Chat, Profile, Meal Plan, Food Analysis, Market Intelligence
+- **Components**: Reusable UI components with Radix UI
+- **Styling**: Tailwind CSS with custom animations
+- **State Management**: React hooks and context
+
+### AI Agents
+- **Coaching Agent**: Motivational guidance and support
+- **Meal Planner Agent**: Personalized meal plan generation
+- **Food Analyzer Agent**: Nutritional analysis and insights
+- **Nutrition Knowledge Agent**: Evidence-based nutrition information
+- **User Profile Agent**: Health profile management
+- **Market Intelligence Agent**: Market trends and analysis
+
+## 🛠️ Technology Stack
+
+### Backend
+- **Framework**: FastAPI
+- **Language**: Python 3.14
+- **Database**: SQLite with SQLAlchemy
+- **AI/ML**: Groq LLM, LangChain v2
+- **Vector Store**: FAISS
+- **Authentication**: JWT tokens
+
+### Frontend
+- **Framework**: Next.js 14
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **UI Components**: Radix UI
+- **State Management**: React Hooks
+
+### DevOps
+- **Version Control**: Git
+- **Package Management**: npm, pip
+- **Environment Management**: .env files
+- **Code Quality**: ESLint, Prettier
+
+## 📊 Data Flow
+
+1. **User Input** → Frontend UI
+2. **API Request** → Backend FastAPI
+3. **Intent Routing** → AI Agent Selection
+4. **AI Processing** → LLM Service
+5. **Response Generation** → Structured Output
+6. **Database Storage** → User Data Persistence
+7. **Frontend Display** → User Interface
+
+## 🔧 Installation
+
+### Prerequisites
+- Python 3.14+
+- Node.js 18+
+- npm or yarn
+
+### Backend Setup
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python main.py
+```
+
+### Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## 🌐 API Endpoints
+
+### Chat
+- `POST /api/v1/chat` - Send message to AI coach
+
+### Profiles
+- `POST /api/v1/profile` - Create user profile
+- `POST /api/v1/profile/{user_id}/health` - Create health profile
+- `GET /api/v1/profile/{user_id}/health` - Get health profile
+
+### Meal Plans
+- `POST /api/v1/meal-plan` - Generate meal plan
+- `GET /api/v1/meal-plan/{plan_id}` - Get meal plan
+
+### Food Analysis
+- `POST /api/v1/analyze-food` - Analyze food nutrition
+
+### Market Intelligence
+- `POST /api/v1/market-intelligence` - Get market trends and insights
+
+## 🎨 UI/UX Features
+
+### Design System
+- **Color Scheme**: Modern gradient effects
+- **Typography**: Clean, readable fonts
+- **Animations**: Smooth transitions and hover effects
+- **Responsive**: Mobile-first design
+
+### User Experience
+- **Intuitive Navigation**: Easy-to-use interface
+- **Real-time Feedback**: Instant AI responses
+- **Progress Tracking**: Visual progress indicators
+- **Personalization**: Tailored user experience
+
+## 🔒 Security Features
+
+- **API Key Management**: Secure LLM API key storage
+- **Input Validation**: Comprehensive input sanitization
+- **Error Handling**: Graceful error responses
+- **Data Privacy**: User data protection
+
+## 📈 Performance
+
+- **Fast Response Times**: Optimized API calls
+- **Efficient Caching**: Vector store for quick retrieval
+- **Scalable Architecture**: Modular design for growth
+- **Database Optimization**: Efficient queries and indexing
+
+## 🧪 Testing
+
+### Backend Tests
+- Unit tests for agents
+- Integration tests for API endpoints
+- Database model tests
+
+### Frontend Tests
+- Component testing
+- API integration testing
+- User interaction testing
+
+## 🚀 Deployment
+
+### Development
+- **Backend**: http://localhost:8000
+- **Frontend**: http://localhost:3000
+- **Database**: SQLite local file
+
+### Production
+- **Backend**: FastAPI with Uvicorn
+- **Frontend**: Next.js static export
+- **Database**: PostgreSQL (recommended)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🔮 Future Roadmap
+
+### Phase 2 Features
+- **Mobile App**: React Native application
+- **Advanced Analytics**: Detailed health metrics
+- **Social Features**: Community and sharing
+- **Integration**: Wearable device connectivity
+
+### Phase 3 Features
+- **Machine Learning**: Personalized recommendations
+- **Multi-language Support**: International expansion
+- **Premium Features**: Subscription-based advanced features
+- **API Marketplace**: Third-party integrations
+
+## 📞 Support
+
+- **Documentation**: Comprehensive API docs
+- **Issues**: GitHub issue tracker
+- **Community**: Discord server
+- **Email**: support@nutrition-coach.ai
+
+---
+
+**Built with ❤️ for better health and nutrition**
 - Budget-conscious meal suggestions
 
 ## Architecture

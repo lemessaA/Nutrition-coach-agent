@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Optional
+import json
+from typing import Optional, List
 
 from database.connection import get_db
 from database.models import User, UserProfile
@@ -9,6 +10,17 @@ from agents.user_profile_agent import UserProfileAgent
 
 router = APIRouter()
 profile_agent = UserProfileAgent()
+
+
+def parse_json_field(field: str) -> List[str]:
+    """Parse JSON string field to list, return empty list if invalid"""
+    if not field or field == "[]":
+        return []
+    try:
+        parsed = json.loads(field)
+        return parsed if isinstance(parsed, list) else []
+    except (json.JSONDecodeError, TypeError):
+        return []
 
 
 @router.post("/profile", response_model=UserResponse)
@@ -196,9 +208,9 @@ async def update_user_profile(
             gender=db_profile.gender,
             activity_level=db_profile.activity_level,
             goal=db_profile.goal,
-            dietary_restrictions=db_profile.dietary_restrictions or [],
-            allergies=db_profile.allergies or [],
-            preferences=db_profile.preferences or [],
+            dietary_restrictions=parse_json_field(db_profile.dietary_restrictions),
+            allergies=parse_json_field(db_profile.allergies),
+            preferences=parse_json_field(db_profile.preferences),
             bmr=db_profile.bmr,
             tdee=db_profile.tdee,
             target_calories=db_profile.target_calories,
@@ -232,9 +244,9 @@ async def get_user_profile(user_id: int, db: Session = Depends(get_db)):
             gender=profile.gender,
             activity_level=profile.activity_level,
             goal=profile.goal,
-            dietary_restrictions=profile.dietary_restrictions or [],
-            allergies=profile.allergies or [],
-            preferences=profile.preferences or [],
+            dietary_restrictions=parse_json_field(profile.dietary_restrictions),
+            allergies=parse_json_field(profile.allergies),
+            preferences=parse_json_field(profile.preferences),
             bmr=profile.bmr,
             tdee=profile.tdee,
             target_calories=profile.target_calories,
