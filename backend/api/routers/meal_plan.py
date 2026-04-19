@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+import json
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -10,6 +11,18 @@ from agents.meal_planner_agent import MealPlannerAgent
 
 router = APIRouter()
 meal_planner_agent = MealPlannerAgent()
+
+
+def _meals_to_dict(meals_field) -> dict:
+    """Meal plans are stored as JSON strings; normalize for response."""
+    if meals_field is None:
+        return {}
+    if isinstance(meals_field, dict):
+        return meals_field
+    try:
+        return json.loads(meals_field)
+    except (TypeError, ValueError):
+        return {}
 
 
 @router.post("/meal-plan", response_model=MealPlanResponse)
@@ -61,9 +74,6 @@ async def create_meal_plan(
         
         meal_plan_data = result["meal_plan"]
         
-        # Save meal plan to database
-        import json
-        
         db_meal_plan = MealPlan(
             user_id=user_id,
             plan_type=request.plan_type,
@@ -84,7 +94,7 @@ async def create_meal_plan(
             user_id=db_meal_plan.user_id,
             plan_type=db_meal_plan.plan_type,
             plan_date=db_meal_plan.plan_date,
-            meals=json.loads(db_meal_plan.meals) if db_meal_plan.meals else {},
+            meals=_meals_to_dict(db_meal_plan.meals),
             total_calories=db_meal_plan.total_calories,
             total_protein=db_meal_plan.total_protein,
             total_carbs=db_meal_plan.total_carbs,
@@ -98,14 +108,14 @@ async def create_meal_plan(
         raise HTTPException(status_code=500, detail=f"Error creating meal plan: {str(e)}")
 
 
-@router.get("/meal-plan/{user_id}", response_model=List[MealPlanResponse])
+@router.get("/meal-plan", response_model=List[MealPlanResponse])
 async def get_meal_plans(
-    user_id: int,
+    user_id: int = Query(..., description="ID of the user whose plans to fetch"),
     plan_type: Optional[str] = None,
     limit: int = 10,
     db: Session = Depends(get_db)
 ):
-    """Get meal plans for a user"""
+    """List meal plans for a user (filter via query params)."""
     try:
         query = db.query(MealPlan).filter(MealPlan.user_id == user_id)
         
@@ -120,7 +130,7 @@ async def get_meal_plans(
                 user_id=plan.user_id,
                 plan_type=plan.plan_type,
                 plan_date=plan.plan_date,
-                meals=plan.meals,
+                meals=_meals_to_dict(plan.meals),
                 total_calories=plan.total_calories,
                 total_protein=plan.total_protein,
                 total_carbs=plan.total_carbs,
@@ -136,7 +146,7 @@ async def get_meal_plans(
 
 @router.get("/meal-plan/{plan_id}", response_model=MealPlanResponse)
 async def get_meal_plan(plan_id: int, db: Session = Depends(get_db)):
-    """Get a specific meal plan"""
+    """Get a specific meal plan by its plan_id."""
     try:
         meal_plan = db.query(MealPlan).filter(MealPlan.id == plan_id).first()
         if not meal_plan:
@@ -147,7 +157,7 @@ async def get_meal_plan(plan_id: int, db: Session = Depends(get_db)):
             user_id=meal_plan.user_id,
             plan_type=meal_plan.plan_type,
             plan_date=meal_plan.plan_date,
-            meals=meal_plan.meals,
+            meals=_meals_to_dict(meal_plan.meals),
             total_calories=meal_plan.total_calories,
             total_protein=meal_plan.total_protein,
             total_carbs=meal_plan.total_carbs,
@@ -281,11 +291,11 @@ async def generate_weekly_meal_plan(
                     user_id=user_id,
                     plan_type="weekly",
                     plan_date=datetime.now(),  # Would be adjusted for actual day
-                    meals=day_plan,
-                    total_calories=day_plan.get("daily_totals", {}).get("calories"),
-                    total_protein=day_plan.get("daily_totals", {}).get("protein"),
-                    total_carbs=day_plan.get("daily_totals", {}).get("carbs"),
-                    total_fat=day_plan.get("daily_totals", {}).get("fat")
+                    meals=json.dumps(day_plan),
+                    total_calories=day_plan.get("daily_totals", {}).get("calories") if isinstance(day_plan, dict) else None,
+                    total_protein=day_plan.get("daily_totals", {}).get("protein") if isinstance(day_plan, dict) else None,
+                    total_carbs=day_plan.get("daily_totals", {}).get("carbs") if isinstance(day_plan, dict) else None,
+                    total_fat=day_plan.get("daily_totals", {}).get("fat") if isinstance(day_plan, dict) else None,
                 )
                 
                 db.add(db_meal_plan)

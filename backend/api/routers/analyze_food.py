@@ -1,3 +1,4 @@
+import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -10,6 +11,18 @@ from agents.food_analyzer_agent import FoodAnalyzerAgent
 
 router = APIRouter()
 food_analyzer_agent = FoodAnalyzerAgent()
+
+
+def _parse_food_items(raw) -> list:
+    """Food items are stored as JSON text; normalize for response."""
+    if not raw:
+        return []
+    if isinstance(raw, list):
+        return raw
+    try:
+        return json.loads(raw)
+    except (TypeError, ValueError):
+        return []
 
 
 @router.post("/analyze-food", response_model=FoodAnalysisResponse)
@@ -66,7 +79,7 @@ async def analyze_food(
             fiber=analysis_data.get("total_nutrition", {}).get("fiber"),
             sugar=analysis_data.get("total_nutrition", {}).get("sugar"),
             sodium=analysis_data.get("total_nutrition", {}).get("sodium"),
-            food_items=str(analysis_data.get("foods_analyzed", []))
+            food_items=json.dumps(analysis_data.get("foods_analyzed", []))
         )
         
         db.add(db_analysis)
@@ -144,7 +157,7 @@ async def analyze_meal(
                 fiber=analysis.get("total_nutrition", {}).get("fiber"),
                 sugar=analysis.get("total_nutrition", {}).get("sugar"),
                 sodium=analysis.get("total_nutrition", {}).get("sodium"),
-                food_items=str(analysis.get("foods_analyzed", []))
+                food_items=json.dumps(analysis.get("foods_analyzed", []))
             )
             
             db.add(db_analysis)
@@ -229,7 +242,7 @@ async def get_food_analysis_history(
                 sugar=analysis.sugar,
                 sodium=analysis.sodium,
                 serving_size=analysis.serving_size,
-                food_items=eval(analysis.food_items) if analysis.food_items else [],
+                food_items=_parse_food_items(analysis.food_items),
                 created_at=analysis.created_at
             )
             for analysis in analyses
@@ -259,7 +272,7 @@ async def get_food_analysis(analysis_id: int, db: Session = Depends(get_db)):
             sugar=analysis.sugar,
             sodium=analysis.sodium,
             serving_size=analysis.serving_size,
-            food_items=eval(analysis.food_items) if analysis.food_items else [],
+            food_items=_parse_food_items(analysis.food_items),
             created_at=analysis.created_at
         )
         

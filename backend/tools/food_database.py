@@ -3,6 +3,42 @@ import json
 import re
 
 
+# Approximate weight (grams) of one typical piece of common foods.
+# Used when an input like "1 medium apple" or "2 eggs" has no explicit
+# weight unit, so that the count is converted to grams instead of being
+# treated literally as "1 gram".
+ITEM_WEIGHTS_G: Dict[str, float] = {
+    "apple": 182,
+    "banana": 118,
+    "orange": 131,
+    "strawberry": 12,
+    "blueberry": 1,
+    "grape": 5,
+    "egg": 50,
+    "eggs": 50,
+    "potato": 213,
+    "sweet potato": 200,
+    "tomato": 123,
+    "carrot": 61,
+    "onion": 110,
+    "bell pepper": 119,
+    "cucumber": 301,
+    "avocado": 150,
+    "bread white": 28,
+    "bread whole wheat": 28,
+}
+
+# Size qualifiers that should be stripped from the food name and
+# optionally scale the item weight.
+SIZE_MULTIPLIERS: Dict[str, float] = {
+    "small": 0.75,
+    "medium": 1.0,
+    "large": 1.3,
+    "extra": 1.5,
+    "jumbo": 1.6,
+}
+
+
 class FoodDatabase:
     """Simple food nutrition database for calorie and macro estimation"""
     
@@ -104,19 +140,21 @@ class FoodDatabase:
         
         return None
     
-    def get_food_info(self, food_name: str, quantity: float = 100, unit: str = "g") -> Dict[str, Any]:
+    def get_food_info(self, food_name: str, quantity: float = 100, unit: str = "g", size: Optional[str] = None) -> Dict[str, Any]:
         """Get nutritional information for a food with quantity"""
         food_data = self.find_food(food_name)
         
         if not food_data:
             return {"found": False, "message": f"Food '{food_name}' not found in database"}
         
+        unit_l = (unit or "g").lower()
+        
         # Convert quantity to grams if needed
-        if unit.lower() in ["oz", "ounce"]:
+        if unit_l in ["oz", "ounce"]:
             quantity_g = quantity * 28.35
-        elif unit.lower() in ["lb", "pound"]:
+        elif unit_l in ["lb", "pound"]:
             quantity_g = quantity * 453.59
-        elif unit.lower() in ["cup", "cups"]:
+        elif unit_l in ["cup", "cups"]:
             # Approximate conversion for common ingredients
             if "rice" in food_name:
                 quantity_g = quantity * 185
@@ -124,6 +162,10 @@ class FoodDatabase:
                 quantity_g = quantity * 120
             else:
                 quantity_g = quantity * 240  # General approximation
+        elif unit_l in ["item", "items", "piece", "pieces", "whole", "ct", "count"]:
+            per_item = self._per_item_weight(food_name)
+            mult = SIZE_MULTIPLIERS.get((size or "").lower(), 1.0)
+            quantity_g = quantity * per_item * mult
         else:
             quantity_g = quantity
         
@@ -141,6 +183,17 @@ class FoodDatabase:
             "quantity_grams": quantity_g,
             "nutrition": nutrition
         }
+    
+    def _per_item_weight(self, food_name: str) -> float:
+        """Approximate weight (grams) of a single item of the given food."""
+        name = (food_name or "").lower().strip()
+        if name in ITEM_WEIGHTS_G:
+            return ITEM_WEIGHTS_G[name]
+        for key, grams in ITEM_WEIGHTS_G.items():
+            if key in name or name in key:
+                return grams
+        # Reasonable fallback: assume a typical serving of ~100g
+        return 100.0
     
     def analyze_meal_string(self, meal_string: str) -> List[Dict[str, Any]]:
         """Parse a meal string and extract food items with quantities"""
@@ -166,10 +219,19 @@ class FoodDatabase:
             for pattern in patterns:
                 match = re.search(pattern, item, re.IGNORECASE)
                 if match:
-                    if pattern == patterns[2]:  # Just number + food
+                    size = None
+                    if pattern == patterns[2]:  # Just number + food (no weight unit)
                         quantity = float(match.group(1))
-                        food_name = match.group(2).strip()
-                        unit = "g"  # Default to grams
+                        raw_name = match.group(2).strip()
+                        # Detect size qualifiers like "medium", "large", ...
+                        tokens = raw_name.split()
+                        if tokens and tokens[0].lower() in SIZE_MULTIPLIERS:
+                            size = tokens[0].lower()
+                            raw_name = " ".join(tokens[1:]).strip() or raw_name
+                        food_name = raw_name
+                        # Treat the count as "items" rather than grams so that
+                        # "1 medium apple" becomes ~1 item, not 1 gram.
+                        unit = "item"
                     else:
                         groups = match.groups()
                         if len(groups) == 3:
@@ -184,7 +246,7 @@ class FoodDatabase:
                         else:
                             continue
                     
-                    food_info = self.get_food_info(food_name, quantity, unit)
+                    food_info = self.get_food_info(food_name, quantity, unit, size=size)
                     foods.append(food_info)
                     matched = True
                     break
