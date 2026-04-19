@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nutrition-coach-agent"
+version = "1.0.0"
+description = "AI-powered nutrition coaching platform (FastAPI backend)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "langchain",
+    "langchain-community",
+    "langchain-openai",
+    "langchain-groq",
+    "langgraph",
+    "sqlalchemy",
+    "alembic",
+    "pydantic",
+    "pydantic-settings",
+    "pydantic[email]",
+    "python-multipart",
+    "python-jose[cryptography]",
+    "passlib[bcrypt]",
+    "python-dotenv",
+    "faiss-cpu",
+    "chromadb",
+    "openai",
+    "groq",
+    "requests",
+    "aiohttp",
+    "numpy",
+    "pandas",
+    "psycopg2-binary",
+]
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+namespaces = true
