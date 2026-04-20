@@ -8,8 +8,8 @@ load_dotenv()
 
 
 class Settings(BaseSettings):
-    # Database
-    database_url: str = "sqlite:///./nutrition_coach.db"
+    # Database postgres
+    database_url: str = "postgresql://postgres:qaws@localhost:5432/nutrition_coach"
     
     # LLM Configuration
     openai_api_key: Optional[str] = None
