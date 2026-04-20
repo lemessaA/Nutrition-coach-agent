@@ -6,32 +6,32 @@ import { Activity, Brain, Calculator, Heart, MessageSquare, TrendingUp } from 'l
 
 export default function Home() {
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 sm:py-12">
       {/* Hero Section */}
-      <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-6xl font-bold gradient-text mb-6 animate-fade-in">
+      <div className="text-center mb-10 sm:mb-12">
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold gradient-text mb-4 sm:mb-6 animate-fade-in">
           Nutrition Coach AI
         </h1>
-        <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto animate-slide-up">
+        <p className="text-base sm:text-xl md:text-2xl text-gray-600 mb-6 sm:mb-8 max-w-3xl mx-auto animate-slide-up">
           Your personal AI nutrition coach for meal planning, nutrition advice, and building healthy habits.
-          Get personalized recommendations powered by advanced AI technology.
+          Get personalized recommendations powered by advanced AI.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up">
-          <Link href="/chat">
-            <Button size="lg" className="bg-green-600 hover:bg-green-700 btn-glow">
-              Start Chatting
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center animate-slide-up">
+          <Link href="/chat" className="w-full sm:w-auto">
+            <Button size="lg" className="w-full sm:w-auto bg-green-600 hover:bg-green-700 btn-glow">
+              Start chatting
             </Button>
           </Link>
-          <Link href="/profile">
-            <Button variant="outline" size="lg" className="btn-glow">
-              Create Profile
+          <Link href="/profile" className="w-full sm:w-auto">
+            <Button variant="outline" size="lg" className="w-full sm:w-auto btn-glow">
+              Create profile
             </Button>
           </Link>
         </div>
       </div>
 
       {/* Features Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-10 sm:mb-12">
         <Card className="card-hover">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -136,9 +136,9 @@ export default function Home() {
       </div>
 
       {/* How It Works */}
-      <div className="text-center mb-12">
-        <h2 className="text-3xl font-bold text-gray-900 mb-8">How It Works</h2>
-        <div className="grid md:grid-cols-4 gap-8">
+      <div className="text-center mb-10 sm:mb-12">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">How it works</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
           <div className="text-center">
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-green-600 font-bold">1</span>
@@ -179,16 +179,16 @@ export default function Home() {
       </div>
 
       {/* CTA Section */}
-      <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-8 text-center text-white">
-        <h2 className="text-3xl font-bold mb-4">
-          Ready to Start Your Nutrition Journey?
+      <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-2xl p-6 sm:p-8 text-center text-white">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">
+          Ready to start your nutrition journey?
         </h2>
-        <p className="text-lg mb-6">
-          Join thousands of users who have transformed their health with personalized AI nutrition coaching.
+        <p className="text-base sm:text-lg mb-5 sm:mb-6 opacity-95">
+          Join thousands who have transformed their health with personalized AI nutrition coaching.
         </p>
         <Link href="/chat">
           <Button size="lg" variant="secondary" className="bg-white text-gray-900 hover:bg-gray-100">
-            Get Started Free
+            Get started free
           </Button>
         </Link>
       </div>

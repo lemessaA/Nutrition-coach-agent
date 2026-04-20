@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, Utensils, Scale, Flame, Activity, AlertCircle, RefreshCw } from 'lucide-react'
+import { useUser } from '@/lib/user-context'
 
 interface NutritionData {
     calories: number
@@ -46,6 +47,7 @@ interface ComparisonResult {
 }
 
 export default function AnalyzeFoodPage() {
+    const { userId, apiUrl } = useUser()
     const [activeTab, setActiveTab] = useState('single')
 
     // Input states
@@ -63,8 +65,6 @@ export default function AnalyzeFoodPage() {
     const [mealResult, setMealResult] = useState<AnalysisResult | null>(null)
     const [compareResult, setCompareResult] = useState<ComparisonResult | null>(null)
 
-    const USER_ID = 1 // Hardcoded for prototype
-
     const handleAnalyze = async (endpoint: string, payload: any, resultSetter: Function) => {
         setIsLoading(true)
         setError(null)
@@ -72,16 +72,19 @@ export default function AnalyzeFoodPage() {
 
         try {
             // Different endpoints have different parameter requirements
-            let url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/${endpoint}`
+            let url = `${apiUrl}/api/v1/${endpoint}`
             let requestBody = payload
+            const uidQuery = userId ? `user_id=${userId}` : ''
 
             if (endpoint === 'analyze-food') {
-                url += `?user_id=${USER_ID}`
+                if (uidQuery) url += `?${uidQuery}`
             } else if (endpoint === 'analyze-meal') {
-                url += `?meal_description=${encodeURIComponent(payload.meal_description)}&user_id=${USER_ID}`
+                const parts = [`meal_description=${encodeURIComponent(payload.meal_description)}`]
+                if (uidQuery) parts.push(uidQuery)
+                url += `?${parts.join('&')}`
                 requestBody = undefined // Query params only
             } else if (endpoint === 'compare-foods') {
-                url += `?user_id=${USER_ID}`
+                if (uidQuery) url += `?${uidQuery}`
                 requestBody = payload.foods // Expects a flat array of strings
             }
 
@@ -140,10 +143,10 @@ export default function AnalyzeFoodPage() {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8 max-w-4xl animate-fade-in">
-            <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold gradient-text mb-2">Food Analyzer</h1>
-                <p className="text-gray-600">Break down the nutritional value of any food or meal instantly.</p>
+        <div className="container mx-auto px-4 py-6 sm:py-8 max-w-4xl animate-fade-in">
+            <div className="text-center mb-6 sm:mb-8">
+                <h1 className="text-2xl sm:text-3xl font-bold gradient-text mb-1">Food Analyzer</h1>
+                <p className="text-sm sm:text-base text-gray-600">Break down the nutritional value of any food or meal instantly.</p>
             </div>
 
             {error && (
@@ -159,14 +162,18 @@ export default function AnalyzeFoodPage() {
             )}
 
             <Tabs defaultValue="single" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-8">
-                    <TabsTrigger value="single" className="flex items-center gap-2">
-                        <Search className="w-4 h-4" /> Single Food
+                <TabsList className="grid w-full grid-cols-3 mb-6 sm:mb-8 gap-1">
+                    <TabsTrigger value="single" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                        <Search className="w-4 h-4" />
+                        <span className="hidden sm:inline">Single Food</span>
+                        <span className="sm:hidden">Food</span>
                     </TabsTrigger>
-                    <TabsTrigger value="meal" className="flex items-center gap-2">
-                        <Utensils className="w-4 h-4" /> Full Meal
+                    <TabsTrigger value="meal" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                        <Utensils className="w-4 h-4" />
+                        <span className="hidden sm:inline">Full Meal</span>
+                        <span className="sm:hidden">Meal</span>
                     </TabsTrigger>
-                    <TabsTrigger value="compare" className="flex items-center gap-2">
+                    <TabsTrigger value="compare" className="flex items-center gap-1.5 text-xs sm:text-sm">
                         <Scale className="w-4 h-4" /> Compare
                     </TabsTrigger>
                 </TabsList>
@@ -179,19 +186,24 @@ export default function AnalyzeFoodPage() {
                             <CardDescription>Enter a specific food item (e.g., "1 large banana", "100g chicken breast")</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex gap-3">
+                            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                                 <input
                                     type="text"
                                     placeholder="e.g. 100g salmon"
                                     value={singleFoodInput}
                                     onChange={(e) => setSingleFoodInput(e.target.value)}
-                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && singleFoodInput.trim() && !isLoading) {
+                                            handleAnalyze('analyze-food', { food_input: singleFoodInput }, setSingleResult)
+                                        }
+                                    }}
+                                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     disabled={isLoading}
                                 />
                                 <Button
                                     onClick={() => handleAnalyze('analyze-food', { food_input: singleFoodInput }, setSingleResult)}
                                     disabled={!singleFoodInput.trim() || isLoading}
-                                    className="bg-blue-600 hover:bg-blue-700 w-32"
+                                    className="bg-blue-600 hover:bg-blue-700 sm:w-32"
                                 >
                                     {isLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : 'Analyze'}
                                 </Button>
@@ -296,7 +308,7 @@ export default function AnalyzeFoodPage() {
                             <CardDescription>See a side-by-side nutritional breakdown to make better choices.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid md:grid-cols-2 gap-4 mb-4">
+                            <div className="grid gap-4 sm:grid-cols-2 mb-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Food 1</label>
                                     <input
@@ -304,7 +316,7 @@ export default function AnalyzeFoodPage() {
                                         placeholder="e.g. 1 cup white rice"
                                         value={compareInput1}
                                         onChange={(e) => setCompareInput1(e.target.value)}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         disabled={isLoading}
                                     />
                                 </div>
@@ -315,7 +327,7 @@ export default function AnalyzeFoodPage() {
                                         placeholder="e.g. 1 cup brown rice"
                                         value={compareInput2}
                                         onChange={(e) => setCompareInput2(e.target.value)}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         disabled={isLoading}
                                     />
                                 </div>

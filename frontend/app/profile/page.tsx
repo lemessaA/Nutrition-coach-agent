@@ -1,263 +1,527 @@
 "use client"
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { User, Heart, Target, Activity, Save, Calculator, AlertCircle as AlertTriangle } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from "react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import {
+  User,
+  Heart,
+  Target,
+  Activity,
+  Save,
+  Calculator,
+  AlertCircle as AlertTriangle,
+  CheckCircle2,
+  LogOut,
+  Loader2,
+  X,
+} from "lucide-react"
+import { useUser } from "@/lib/user-context"
+import { cn } from "@/lib/utils"
 
-interface UserProfile {
+type Gender = "male" | "female" | "other"
+type ActivityLevel =
+  | "sedentary"
+  | "lightly_active"
+  | "moderately_active"
+  | "very_active"
+  | "extra_active"
+type Goal = "lose_weight" | "gain_muscle" | "maintain_health"
+
+interface ProfileForm {
   email: string
   fullName: string
   age: string
   weight: string
   height: string
-  gender: 'male' | 'female' | 'other'
-  activityLevel: 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extra_active'
-  goal: 'lose_weight' | 'gain_muscle' | 'maintain_health'
+  gender: Gender
+  activityLevel: ActivityLevel
+  goal: Goal
   dietaryRestrictions: string[]
   allergies: string[]
   preferences: string[]
 }
 
-export default function ProfilePage() {
-  const [profile, setProfile] = useState<UserProfile>({
-    email: '',
-    fullName: '',
-    age: '',
-    weight: '',
-    height: '',
-    gender: 'male',
-    activityLevel: 'moderately_active',
-    goal: 'maintain_health',
-    dietaryRestrictions: [],
-    allergies: [],
-    preferences: []
-  })
+const ACTIVITY_LEVELS: { value: ActivityLevel; label: string; multiplier: number }[] = [
+  { value: "sedentary", label: "Sedentary (little or no exercise)", multiplier: 1.2 },
+  { value: "lightly_active", label: "Lightly active (1-3 days/week)", multiplier: 1.375 },
+  { value: "moderately_active", label: "Moderately active (3-5 days/week)", multiplier: 1.55 },
+  { value: "very_active", label: "Very active (6-7 days/week)", multiplier: 1.725 },
+  { value: "extra_active", label: "Extra active (very hard training)", multiplier: 1.9 },
+]
 
-  const [calculatedTargets, setCalculatedTargets] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [savedProfile, setSavedProfile] = useState(false)
+const GOALS: { value: Goal; label: string; color: string; description: string }[] = [
+  {
+    value: "lose_weight",
+    label: "Lose weight",
+    color: "bg-red-100 text-red-800 border-red-200",
+    description: "Caloric deficit (~20% below TDEE)",
+  },
+  {
+    value: "gain_muscle",
+    label: "Gain muscle",
+    color: "bg-blue-100 text-blue-800 border-blue-200",
+    description: "Caloric surplus (~15% above TDEE)",
+  },
+  {
+    value: "maintain_health",
+    label: "Maintain",
+    color: "bg-green-100 text-green-800 border-green-200",
+    description: "Maintenance calories (= TDEE)",
+  },
+]
+
+const emptyForm: ProfileForm = {
+  email: "",
+  fullName: "",
+  age: "",
+  weight: "",
+  height: "",
+  gender: "male",
+  activityLevel: "moderately_active",
+  goal: "maintain_health",
+  dietaryRestrictions: [],
+  allergies: [],
+  preferences: [],
+}
+
+function computeTargets(form: ProfileForm) {
+  const age = parseFloat(form.age)
+  const weight = parseFloat(form.weight)
+  const height = parseFloat(form.height)
+  if (!age || !weight || !height) return null
+  // Mifflin-St Jeor
+  let bmr = 10 * weight + 6.25 * height - 5 * age
+  bmr += form.gender === "male" ? 5 : form.gender === "female" ? -161 : -78
+  const mult =
+    ACTIVITY_LEVELS.find((a) => a.value === form.activityLevel)?.multiplier ?? 1.55
+  const tdee = bmr * mult
+  const goalMult =
+    form.goal === "lose_weight" ? 0.8 : form.goal === "gain_muscle" ? 1.15 : 1
+  const targetCalories = tdee * goalMult
+  // macro split: 30% protein / 40% carbs / 30% fat
+  const targetProtein = (targetCalories * 0.3) / 4
+  const targetCarbs = (targetCalories * 0.4) / 4
+  const targetFat = (targetCalories * 0.3) / 9
+  return {
+    bmr: Math.round(bmr),
+    tdee: Math.round(tdee),
+    targetCalories: Math.round(targetCalories),
+    targetProtein: Math.round(targetProtein),
+    targetCarbs: Math.round(targetCarbs),
+    targetFat: Math.round(targetFat),
+  }
+}
+
+function ChipInput({
+  label,
+  placeholder,
+  items,
+  onChange,
+}: {
+  label: string
+  placeholder: string
+  items: string[]
+  onChange: (next: string[]) => void
+}) {
+  const [draft, setDraft] = useState("")
+  const addDraft = () => {
+    const v = draft.trim()
+    if (!v) return
+    if (items.map((i) => i.toLowerCase()).includes(v.toLowerCase())) {
+      setDraft("")
+      return
+    }
+    onChange([...items, v])
+    setDraft("")
+  }
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
+      <div className="flex flex-wrap gap-2 rounded-md border border-gray-300 bg-white p-2 focus-within:border-green-500 focus-within:ring-2 focus-within:ring-green-200">
+        {items.map((item) => (
+          <span
+            key={item}
+            className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800"
+          >
+            {item}
+            <button
+              type="button"
+              onClick={() => onChange(items.filter((x) => x !== item))}
+              className="text-green-700 hover:text-green-900"
+              aria-label={`Remove ${item}`}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        ))}
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === ",") {
+              e.preventDefault()
+              addDraft()
+            } else if (e.key === "Backspace" && !draft && items.length) {
+              onChange(items.slice(0, -1))
+            }
+          }}
+          onBlur={addDraft}
+          placeholder={items.length ? "" : placeholder}
+          className="flex-1 min-w-[120px] border-none bg-transparent p-1 text-sm outline-none"
+        />
+      </div>
+      <p className="mt-1 text-[11px] text-gray-500">Press Enter or comma to add</p>
+    </div>
+  )
+}
+
+export default function ProfilePage() {
+  const { userId, email, fullName, apiUrl, ready, setUser, setProfile, clearUser } =
+    useUser()
+  const [form, setForm] = useState<ProfileForm>(emptyForm)
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleInputChange = (field: keyof UserProfile, value: any) => {
-    setProfile(prev => ({ ...prev, [field]: value }))
-  }
+  const calculatedTargets = useMemo(() => computeTargets(form), [form])
 
-  const handleArrayInput = (field: 'dietaryRestrictions' | 'allergies' | 'preferences', value: string) => {
-    const items = value.split(',').map(item => item.trim()).filter(item => item)
-    setProfile(prev => ({ ...prev, [field]: items }))
-  }
-
-  const calculateTargets = async () => {
-    setIsLoading(true)
-    try {
-      // Simulate API call to calculate targets
-      const mockTargets = {
-        bmr: 1650,
-        tdee: 2200,
-        targetCalories: 2000,
-        targetProtein: 120,
-        targetCarbs: 250,
-        targetFat: 67
+  const loadExistingProfile = useCallback(
+    async (uid: number) => {
+      setLoading(true)
+      try {
+        const [userRes, healthRes] = await Promise.all([
+          fetch(`${apiUrl}/api/v1/profile/${uid}`),
+          fetch(`${apiUrl}/api/v1/profile/${uid}/health`),
+        ])
+        if (userRes.ok) {
+          const u = await userRes.json()
+          setForm((prev) => ({
+            ...prev,
+            email: u.email ?? prev.email,
+            fullName: u.full_name ?? prev.fullName,
+          }))
+        }
+        if (healthRes.ok) {
+          const h = await healthRes.json()
+          setForm((prev) => ({
+            ...prev,
+            age: h.age?.toString() ?? "",
+            weight: h.weight?.toString() ?? "",
+            height: h.height?.toString() ?? "",
+            gender: (h.gender as Gender) ?? prev.gender,
+            activityLevel:
+              (h.activity_level as ActivityLevel) ?? prev.activityLevel,
+            goal: (h.goal as Goal) ?? prev.goal,
+            dietaryRestrictions: Array.isArray(h.dietary_restrictions)
+              ? h.dietary_restrictions
+              : [],
+            allergies: Array.isArray(h.allergies) ? h.allergies : [],
+            preferences: Array.isArray(h.preferences) ? h.preferences : [],
+          }))
+          setProfile(h)
+        }
+      } catch (err) {
+        console.error("Failed to load profile", err)
+      } finally {
+        setLoading(false)
       }
-      setCalculatedTargets(mockTargets)
-    } catch (error) {
-      console.error('Error calculating targets:', error)
-    } finally {
-      setIsLoading(false)
+    },
+    [apiUrl, setProfile]
+  )
+
+  useEffect(() => {
+    if (!ready) return
+    if (userId) {
+      setForm((prev) => ({
+        ...prev,
+        email: email ?? prev.email,
+        fullName: fullName ?? prev.fullName,
+      }))
+      loadExistingProfile(userId)
     }
+  }, [ready, userId, email, fullName, loadExistingProfile])
+
+  const update = <K extends keyof ProfileForm>(field: K, value: ProfileForm[K]) =>
+    setForm((prev) => ({ ...prev, [field]: value }))
+
+  const validate = (): string | null => {
+    if (!form.age || !form.weight || !form.height)
+      return "Please fill in age, weight and height."
+    const a = parseFloat(form.age)
+    const w = parseFloat(form.weight)
+    const h = parseFloat(form.height)
+    if (a <= 0 || a > 120) return "Age looks off."
+    if (w <= 0 || w > 400) return "Weight looks off."
+    if (h <= 0 || h > 260) return "Height looks off (use centimeters)."
+    return null
   }
 
-  const saveProfile = async () => {
-    setIsLoading(true)
+  const handleSave = async () => {
     setError(null)
+    const v = validate()
+    if (v) {
+      setError(v)
+      return
+    }
+    setSaving(true)
     try {
-      // Validate required fields
-      if (!profile.age || !profile.weight || !profile.height || !profile.gender || !profile.activityLevel || !profile.goal) {
-        throw new Error('Please fill in all required fields (age, weight, height, gender, activity level, and goal)')
+      let currentUserId = userId
+      let currentEmail = form.email || email || ""
+
+      if (!currentUserId) {
+        const fallbackEmail =
+          currentEmail ||
+          `guest-${Date.now()}@nutrition-coach.local`
+        const userRes = await fetch(`${apiUrl}/api/v1/profile`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: fallbackEmail,
+            full_name: form.fullName || "User",
+          }),
+        })
+        if (!userRes.ok) {
+          const detail = await userRes.json().catch(() => ({}))
+          throw new Error(detail.detail || "Could not create account")
+        }
+        const userData = await userRes.json()
+        currentUserId = userData.id
+        currentEmail = userData.email
+        setUser({
+          userId: userData.id,
+          email: userData.email,
+          fullName: userData.full_name,
+        })
       }
 
-      // Make API call to save health profile
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-      console.log('API URL:', apiUrl)
-      
-      // First create basic user if needed
-      const basicProfile = {
-        email: profile.email || 'user@example.com',
-        full_name: profile.fullName || 'User'
+      const healthPayload = {
+        age: parseInt(form.age, 10),
+        weight: parseFloat(form.weight),
+        height: parseFloat(form.height),
+        gender: form.gender,
+        activity_level: form.activityLevel,
+        goal: form.goal,
+        dietary_restrictions: form.dietaryRestrictions,
+        allergies: form.allergies,
+        preferences: form.preferences,
       }
-      
-      const userResponse = await fetch(`${apiUrl}/api/v1/profile`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(basicProfile)
+
+      let healthRes = await fetch(
+        `${apiUrl}/api/v1/profile/${currentUserId}/health`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(healthPayload),
+        }
+      )
+
+      // If profile already exists, backend returns 400 -> fall back to PUT
+      if (healthRes.status === 400) {
+        healthRes = await fetch(
+          `${apiUrl}/api/v1/profile/${currentUserId}/health`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(healthPayload),
+          }
+        )
+      }
+
+      if (!healthRes.ok) {
+        const detail = await healthRes.json().catch(() => ({}))
+        throw new Error(detail.detail || "Could not save health profile")
+      }
+
+      const health = await healthRes.json()
+      setProfile(health)
+      setUser({
+        userId: currentUserId!,
+        email: currentEmail,
+        fullName: form.fullName || fullName || null,
       })
-
-      if (!userResponse.ok) {
-        throw new Error('Failed to create user profile')
-      }
-
-      const userData = await userResponse.json()
-      const userId = userData.id
-
-      // Then save health profile
-      const healthProfile = {
-        age: parseInt(profile.age) || 0,
-        weight: parseFloat(profile.weight) || 0,
-        height: parseFloat(profile.height) || 0,
-        gender: profile.gender,
-        activity_level: profile.activityLevel,
-        goal: profile.goal,
-        dietary_restrictions: profile.dietaryRestrictions,
-        allergies: profile.allergies,
-        preferences: profile.preferences
-      }
-
-      const healthResponse = await fetch(`${apiUrl}/api/v1/profile/${userId}/health`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(healthProfile)
-      })
-
-      if (healthResponse.ok) {
-        const data = await healthResponse.json()
-        setSavedProfile(true)
-        setTimeout(() => setSavedProfile(false), 3000)
-        console.log('Health profile saved:', data)
-      } else {
-        throw new Error('Failed to save health profile')
-      }
-    } catch (error) {
-      console.error('Error saving profile:', error)
-      setError(error.message || 'Failed to save profile')
+      setSuccess(true)
+      window.setTimeout(() => setSuccess(false), 3000)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to save profile"
+      setError(msg)
     } finally {
-      setIsLoading(false)
+      setSaving(false)
     }
   }
 
-  const activityLevels = [
-    { value: 'sedentary', label: 'Sedentary (little or no exercise)' },
-    { value: 'lightly_active', label: 'Lightly Active (1-3 days/week)' },
-    { value: 'moderately_active', label: 'Moderately Active (3-5 days/week)' },
-    { value: 'very_active', label: 'Very Active (6-7 days/week)' },
-    { value: 'extra_active', label: 'Extra Active (very hard exercise/physical job)' }
-  ]
-
-  const goals = [
-    { value: 'lose_weight', label: 'Lose Weight', color: 'bg-red-100 text-red-800' },
-    { value: 'gain_muscle', label: 'Gain Muscle', color: 'bg-blue-100 text-blue-800' },
-    { value: 'maintain_health', label: 'Maintain Health', color: 'bg-green-100 text-green-800' }
-  ]
+  const bmi = useMemo(() => {
+    const w = parseFloat(form.weight)
+    const h = parseFloat(form.height)
+    if (!w || !h) return null
+    const value = w / Math.pow(h / 100, 2)
+    let category = "Normal"
+    let color = "text-green-600"
+    if (value < 18.5) {
+      category = "Underweight"
+      color = "text-blue-600"
+    } else if (value >= 25 && value < 30) {
+      category = "Overweight"
+      color = "text-orange-600"
+    } else if (value >= 30) {
+      category = "Obese"
+      color = "text-red-600"
+    }
+    return { value: +value.toFixed(1), category, color }
+  }, [form.weight, form.height])
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl animate-fade-in">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold gradient-text mb-2">Health Profile</h1>
-        <p className="text-gray-600">Create your personalized nutrition profile</p>
+    <div className="container mx-auto max-w-4xl px-4 py-6 sm:py-8 animate-fade-in">
+      <div className="mb-6 text-center">
+        <h1 className="text-2xl sm:text-3xl font-bold gradient-text mb-1">
+          Health Profile
+        </h1>
+        <p className="text-sm sm:text-base text-gray-600">
+          {userId
+            ? "Update your profile to keep recommendations in sync"
+            : "Create your personalized nutrition profile"}
+        </p>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-center gap-2 text-red-800">
-            <AlertTriangle className="w-5 h-5" />
-            <span className="font-semibold">Error</span>
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+          <div className="flex items-start gap-2 text-red-800">
+            <AlertTriangle className="h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-semibold">Error</p>
+              <p className="text-sm">{error}</p>
+            </div>
           </div>
-          <p className="text-red-700 text-sm mt-1">{error}</p>
         </div>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Main Profile Form */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Basic Information */}
+      {success && (
+        <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4">
+          <div className="flex items-start gap-2 text-green-800">
+            <CheckCircle2 className="h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-semibold">Saved!</p>
+              <p className="text-sm">
+                Your profile is saved.{" "}
+                <Link href="/meal-plan" className="underline font-medium">
+                  Generate a meal plan
+                </Link>{" "}
+                or{" "}
+                <Link href="/chat" className="underline font-medium">
+                  ask the coach
+                </Link>
+                .
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
           <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
-                Basic Information
+                Basic information
               </CardTitle>
+              <CardDescription>Used to personalize your coach</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
                     Email
                   </label>
                   <input
                     type="email"
-                    value={profile.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoComplete="email"
+                    value={form.email}
+                    onChange={(e) => update("email", e.target.value)}
+                    disabled={!!userId}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200 disabled:bg-gray-50"
                     placeholder="your@email.com"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Full name
                   </label>
                   <input
                     type="text"
-                    value={profile.fullName}
-                    onChange={(e) => handleInputChange('fullName', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoComplete="name"
+                    value={form.fullName}
+                    onChange={(e) => update("fullName", e.target.value)}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
                     placeholder="John Doe"
                   />
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
                     Age
                   </label>
                   <input
                     type="number"
-                    value={profile.age}
-                    onChange={(e) => handleInputChange('age', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    inputMode="numeric"
+                    min={1}
+                    max={120}
+                    value={form.age}
+                    onChange={(e) => update("age", e.target.value)}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
                     placeholder="25"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
                     Weight (kg)
                   </label>
                   <input
                     type="number"
-                    value={profile.weight}
-                    onChange={(e) => handleInputChange('weight', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    inputMode="decimal"
+                    min={1}
+                    value={form.weight}
+                    onChange={(e) => update("weight", e.target.value)}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
                     placeholder="70"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
                     Height (cm)
                   </label>
                   <input
                     type="number"
-                    value={profile.height}
-                    onChange={(e) => handleInputChange('height', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    inputMode="decimal"
+                    min={1}
+                    value={form.height}
+                    onChange={(e) => update("height", e.target.value)}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
                     placeholder="175"
                   />
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
                     Gender
                   </label>
                   <select
-                    value={profile.gender}
-                    onChange={(e) => handleInputChange('gender', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={form.gender}
+                    onChange={(e) => update("gender", e.target.value as Gender)}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
                   >
                     <option value="male">Male</option>
                     <option value="female">Female</option>
@@ -265,17 +529,19 @@ export default function ProfilePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Activity Level
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Activity level
                   </label>
                   <select
-                    value={profile.activityLevel}
-                    onChange={(e) => handleInputChange('activityLevel', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={form.activityLevel}
+                    onChange={(e) =>
+                      update("activityLevel", e.target.value as ActivityLevel)
+                    }
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
                   >
-                    {activityLevels.map(level => (
-                      <option key={level.value} value={level.value}>
-                        {level.label}
+                    {ACTIVITY_LEVELS.map((lvl) => (
+                      <option key={lvl.value} value={lvl.value}>
+                        {lvl.label}
                       </option>
                     ))}
                   </select>
@@ -284,186 +550,182 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Goals */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5" />
-                Health Goal
+                Health goal
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-3 gap-4">
-                {goals.map(goal => (
-                  <div
-                    key={goal.value}
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      profile.goal === goal.value
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => handleInputChange('goal', goal.value)}
-                  >
-                    <Badge className={goal.color}>
-                      {goal.label}
-                    </Badge>
-                  </div>
-                ))}
+              <div className="grid gap-3 sm:grid-cols-3">
+                {GOALS.map((goal) => {
+                  const selected = form.goal === goal.value
+                  return (
+                    <button
+                      type="button"
+                      key={goal.value}
+                      onClick={() => update("goal", goal.value)}
+                      className={cn(
+                        "rounded-xl border p-4 text-left transition-all",
+                        selected
+                          ? "border-green-500 bg-green-50 ring-2 ring-green-100"
+                          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                      )}
+                    >
+                      <Badge className={goal.color}>{goal.label}</Badge>
+                      <p className="mt-2 text-xs text-gray-600">{goal.description}</p>
+                    </button>
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
 
-          {/* Dietary Preferences */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Heart className="h-5 w-5" />
-                Dietary Preferences
+                Dietary preferences
               </CardTitle>
+              <CardDescription>
+                These help the coach avoid foods that don't work for you
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Dietary Restrictions (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={profile.dietaryRestrictions.join(', ')}
-                  onChange={(e) => handleArrayInput('dietaryRestrictions', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="vegetarian, gluten-free, dairy-free"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Allergies (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={profile.allergies.join(', ')}
-                  onChange={(e) => handleArrayInput('allergies', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="nuts, shellfish, soy"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Food Preferences (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={profile.preferences.join(', ')}
-                  onChange={(e) => handleArrayInput('preferences', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="chicken, fish, rice, pasta"
-                />
-              </div>
+              <ChipInput
+                label="Dietary restrictions"
+                placeholder="vegetarian, gluten-free..."
+                items={form.dietaryRestrictions}
+                onChange={(v) => update("dietaryRestrictions", v)}
+              />
+              <ChipInput
+                label="Allergies"
+                placeholder="nuts, shellfish, soy..."
+                items={form.allergies}
+                onChange={(v) => update("allergies", v)}
+              />
+              <ChipInput
+                label="Food preferences"
+                placeholder="chicken, fish, rice..."
+                items={form.preferences}
+                onChange={(v) => update("preferences", v)}
+              />
             </CardContent>
           </Card>
 
-          {/* Action Buttons */}
-          <div className="flex gap-4">
+          <div className="sticky bottom-0 -mx-4 flex flex-wrap gap-3 border-t border-gray-200 bg-white/90 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
             <Button
-              onClick={calculateTargets}
-              disabled={isLoading || !profile.age || !profile.weight || !profile.height}
-              variant="outline"
-              className="flex items-center gap-2"
+              onClick={handleSave}
+              disabled={saving || loading}
+              className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700"
             >
-              <Calculator className="h-4 w-4" />
-              Calculate Targets
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  {userId ? "Update profile" : "Save profile"}
+                </>
+              )}
             </Button>
-            <Button
-              onClick={saveProfile}
-              disabled={isLoading}
-              className="flex items-center gap-2"
-            >
-              <Save className="h-4 w-4" />
-              Save Profile
-            </Button>
+            {userId && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  clearUser()
+                  setForm(emptyForm)
+                }}
+                className="flex-1 sm:flex-none"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Calculated Targets */}
-          {calculatedTargets && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  Your Targets
+        <div className="space-y-4 lg:sticky lg:top-20 lg:h-fit">
+          <Card className="card-hover">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Calculator className="h-4 w-4" />
+                Your estimated targets
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Live from Mifflin-St Jeor equation
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {calculatedTargets ? (
+                <div className="space-y-2 text-sm">
+                  <Row label="BMR" value={`${calculatedTargets.bmr} kcal`} />
+                  <Row label="TDEE" value={`${calculatedTargets.tdee} kcal`} />
+                  <hr />
+                  <Row
+                    label="Target calories"
+                    value={`${calculatedTargets.targetCalories} kcal`}
+                    emphasize
+                  />
+                  <Row label="Protein" value={`${calculatedTargets.targetProtein} g`} />
+                  <Row label="Carbs" value={`${calculatedTargets.targetCarbs} g`} />
+                  <Row label="Fat" value={`${calculatedTargets.targetFat} g`} />
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  Fill in age, weight and height to see targets.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {bmi && (
+            <Card className="card-hover">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Activity className="h-4 w-4" />
+                  BMI
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">BMR</span>
-                    <span className="font-semibold">{calculatedTargets.bmr} kcal</span>
+                <div className="text-center">
+                  <div className="text-3xl font-bold">{bmi.value}</div>
+                  <div className={cn("text-sm font-medium", bmi.color)}>
+                    {bmi.category}
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">TDEE</span>
-                    <span className="font-semibold">{calculatedTargets.tdee} kcal</span>
-                  </div>
-                  <hr />
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Target Calories</span>
-                    <span className="font-semibold text-blue-600">{calculatedTargets.targetCalories} kcal</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Protein</span>
-                    <span className="font-semibold">{calculatedTargets.targetProtein}g</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Carbs</span>
-                    <span className="font-semibold">{calculatedTargets.targetCarbs}g</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Fat</span>
-                    <span className="font-semibold">{calculatedTargets.targetFat}g</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* BMI Calculator */}
-          {profile.age && profile.weight && profile.height && (
-            <Card>
-              <CardHeader>
-                <CardTitle>BMI Calculator</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(() => {
-                  const bmi = parseFloat(profile.weight) / Math.pow(parseFloat(profile.height) / 100, 2)
-                  const bmiCategory = bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Normal' : bmi < 30 ? 'Overweight' : 'Obese'
-                  const categoryColor = bmi < 18.5 ? 'text-blue-600' : bmi < 25 ? 'text-green-600' : bmi < 30 ? 'text-orange-600' : 'text-red-600'
-                  
-                  return (
-                    <div className="space-y-2">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold">{bmi.toFixed(1)}</div>
-                        <div className={`text-sm font-medium ${categoryColor}`}>{bmiCategory}</div>
-                      </div>
-                    </div>
-                  )
-                })()}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Success Message */}
-          {savedProfile && (
-            <Card className="border-green-200 bg-green-50">
-              <CardContent className="pt-6">
-                <div className="text-center text-green-800">
-                  <div className="text-lg font-semibold mb-1">Profile Saved!</div>
-                  <div className="text-sm">Your profile has been successfully saved.</div>
                 </div>
               </CardContent>
             </Card>
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+function Row({
+  label,
+  value,
+  emphasize,
+}: {
+  label: string
+  value: string
+  emphasize?: boolean
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-gray-600">{label}</span>
+      <span
+        className={cn(
+          "font-semibold",
+          emphasize ? "text-blue-600" : "text-gray-900"
+        )}
+      >
+        {value}
+      </span>
     </div>
   )
 }

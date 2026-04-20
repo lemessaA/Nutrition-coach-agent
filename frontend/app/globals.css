@@ -53,33 +53,78 @@
   * {
     @apply border-border;
   }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior-y: none;
+  }
+  /* Prevent iOS Safari auto-zoom on focus: inputs must be >= 16px */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+  @media (min-width: 768px) {
+    input,
+    select,
+    textarea {
+      font-size: 0.875rem;
+    }
   }
 }
 
 @layer components {
   /* Enhanced button styles */
   .btn-glow {
-    @apply transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg;
+    @apply transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-lg;
   }
-  
-  /* Card hover effects */
-  .card-hover {
-    @apply transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1;
+
+  /* Card hover effects (disabled on touch devices so it doesn't stick) */
+  @media (hover: hover) {
+    .card-hover {
+      @apply transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1;
+    }
   }
-  
+
   /* Gradient text */
   .gradient-text {
     @apply bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent;
   }
-  
+
   /* Smooth animations */
   .animate-fade-in {
     @apply animate-in fade-in duration-500;
   }
-  
+
   .animate-slide-up {
     @apply animate-in slide-in-from-bottom duration-500;
+  }
+
+  /* Horizontal-scrolling chip row for mobile */
+  .chip-row {
+    @apply flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x;
+    scrollbar-width: none;
+  }
+  .chip-row::-webkit-scrollbar {
+    display: none;
+  }
+  .chip-row > * {
+    @apply snap-start shrink-0;
+  }
+}
+
+/* Nicer scrollbar in chat / long content */
+@media (min-width: 768px) {
+  .nice-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .nice-scroll::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+  .nice-scroll::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
   }
 }
