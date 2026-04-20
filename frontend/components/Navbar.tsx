@@ -12,9 +12,12 @@ import {
   BarChart3,
   Menu,
   X,
+  LogIn,
+  LogOut,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/lib/user-context"
+import { SignInDialog } from "@/components/SignInDialog"
 
 type NavItem = {
   href: string
@@ -33,7 +36,8 @@ const NAV_ITEMS: NavItem[] = [
 export function Navbar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
-  const { userId, fullName, email, ready } = useUser()
+  const [signInOpen, setSignInOpen] = useState(false)
+  const { userId, fullName, email, ready, clearUser } = useUser()
 
   useEffect(() => {
     setOpen(false)
@@ -110,6 +114,26 @@ export function Navbar() {
               />
               {identityLabel}
             </span>
+            {ready && !userId && (
+              <button
+                type="button"
+                onClick={() => setSignInOpen(true)}
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-800 hover:bg-green-100"
+              >
+                <LogIn className="h-4 w-4" />
+                Sign in
+              </button>
+            )}
+            {ready && userId && (
+              <button
+                type="button"
+                onClick={clearUser}
+                title="Sign out"
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
@@ -167,7 +191,41 @@ export function Navbar() {
             </Link>
           )
         })}
+
+        <div className="mt-auto border-t pt-3">
+          {ready && !userId && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                setSignInOpen(true)
+              }}
+              className="flex w-full items-center gap-3 rounded-lg bg-green-600 px-3 py-3 text-base font-medium text-white hover:bg-green-700"
+            >
+              <LogIn className="h-5 w-5" />
+              Sign in
+            </button>
+          )}
+          {ready && userId && (
+            <button
+              type="button"
+              onClick={() => {
+                clearUser()
+                setOpen(false)
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 hover:bg-gray-100"
+            >
+              <LogOut className="h-5 w-5" />
+              Sign out
+            </button>
+          )}
+        </div>
       </aside>
+
+      <SignInDialog
+        open={signInOpen}
+        onClose={() => setSignInOpen(false)}
+      />
     </>
   )
 }
