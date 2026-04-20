@@ -27,14 +27,13 @@ def parse_json_field(field: str) -> List[str]:
 async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     """Create a new user"""
     try:
-        # Check if user already exists
-        existing_user = db.query(User).filter(User.email == user.email).first()
+        normalized_email = user.email.strip().lower() if user.email else user.email
+        existing_user = db.query(User).filter(User.email == normalized_email).first()
         if existing_user:
             raise HTTPException(status_code=400, detail="Email already registered")
         
-        # Create user
         db_user = User(
-            email=user.email,
+            email=normalized_email,
             full_name=user.full_name
         )
         db.add(db_user)
