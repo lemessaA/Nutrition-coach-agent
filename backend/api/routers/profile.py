@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 import json
 from typing import Optional, List
@@ -52,6 +52,29 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating user: {str(e)}")
+
+
+@router.get("/profile/by-email", response_model=UserResponse)
+async def get_user_by_email(
+    email: str = Query(..., description="Email address of the user"),
+    db: Session = Depends(get_db),
+):
+    """Look up a user by email (used for lightweight email-based sign-in)."""
+    try:
+        normalized = email.strip().lower()
+        user = db.query(User).filter(User.email == normalized).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return UserResponse(
+            id=user.id,
+            email=user.email,
+            full_name=user.full_name,
+            created_at=user.created_at,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching user: {str(e)}")
 
 
 @router.get("/profile/{user_id}", response_model=UserResponse)
