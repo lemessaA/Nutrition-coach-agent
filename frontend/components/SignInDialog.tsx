@@ -71,6 +71,7 @@ export function SignInDialog({ open, onClose, onSuccess }: SignInDialogProps) {
         userId: user.id,
         email: user.email,
         fullName: user.full_name,
+        role: user.role,
       })
 
       try {

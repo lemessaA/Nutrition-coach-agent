@@ -24,10 +24,13 @@ import {
   LogIn,
   Loader2,
   X,
+  Store,
+  ShoppingBasket,
 } from "lucide-react"
-import { useUser } from "@/lib/user-context"
+import { useUser, type UserRole } from "@/lib/user-context"
 import { cn } from "@/lib/utils"
 import { SignInDialog } from "@/components/SignInDialog"
+import { marketplaceAPI } from "@/services/api"
 
 type Gender = "male" | "female" | "other"
 type ActivityLevel =
@@ -187,8 +190,19 @@ function ChipInput({
 }
 
 export default function ProfilePage() {
-  const { userId, email, fullName, apiUrl, ready, setUser, setProfile, clearUser } =
-    useUser()
+  const {
+    userId,
+    email,
+    fullName,
+    apiUrl,
+    ready,
+    setUser,
+    setProfile,
+    clearUser,
+    role,
+    isSeller,
+    setRole,
+  } = useUser()
   const [form, setForm] = useState<ProfileForm>(emptyForm)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -304,6 +318,7 @@ export default function ProfilePage() {
           userId: userData.id,
           email: userData.email,
           fullName: userData.full_name,
+          role: userData.role,
         })
       }
 
@@ -725,6 +740,15 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
           )}
+
+          {userId && (
+            <SellerRoleCard
+              userId={userId}
+              role={role}
+              isSeller={isSeller}
+              onRoleChange={(newRole) => setRole(newRole)}
+            />
+          )}
         </div>
       </div>
 
@@ -757,5 +781,105 @@ function Row({
         {value}
       </span>
     </div>
+  )
+}
+
+function SellerRoleCard({
+  userId,
+  role,
+  isSeller,
+  onRoleChange,
+}: {
+  userId: number
+  role: UserRole
+  isSeller: boolean
+  onRoleChange: (role: UserRole) => void
+}) {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const updateRole = async (next: UserRole) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const updated = (await marketplaceAPI.updateRole(userId, next)) as {
+        role?: string
+      }
+      const resolved = updated?.role as UserRole | undefined
+      onRoleChange(resolved === "seller" || resolved === "both" ? resolved : next)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update role")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card className="card-hover">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Store className="h-4 w-4" />
+          Seller account
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Sell food with nutrition info to buyers on the marketplace.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">Current role</span>
+          <Badge
+            variant={isSeller ? "default" : "secondary"}
+            className="capitalize"
+          >
+            {role}
+          </Badge>
+        </div>
+
+        {error && (
+          <p className="flex items-center gap-1 text-xs text-red-600">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {error}
+          </p>
+        )}
+
+        {!isSeller ? (
+          <Button
+            onClick={() => updateRole("seller")}
+            disabled={loading}
+            className="w-full gap-2"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Store className="h-4 w-4" />
+            )}
+            Become a seller
+          </Button>
+        ) : (
+          <div className="space-y-2">
+            <Link href="/marketplace/sell" className="block">
+              <Button className="w-full gap-2">
+                <Store className="h-4 w-4" />
+                Open seller dashboard
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              onClick={() => updateRole("buyer")}
+              disabled={loading}
+              className="w-full gap-2 text-muted-foreground"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ShoppingBasket className="h-4 w-4" />
+              )}
+              Switch back to buyer only
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }

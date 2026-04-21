@@ -6,7 +6,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 export async function apiRequest<T = any>(
   endpoint: string,
   options: {
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
     body?: any
     params?: Record<string, string>
     headers?: Record<string, string>
@@ -154,39 +154,6 @@ export const foodAnalysisAPI = {
   }
 }
 
-// Market Intelligence API
-export const marketAPI = {
-  getMarketData: async (category: string = 'all', analysisType: string = 'trends') => {
-    return apiRequest('market-intelligence', {
-      method: 'POST',
-      body: {
-        category,
-        analysis_type: analysisType
-      }
-    })
-  },
-
-  getPriceHistory: async (item: string, timeframe: string = '30d') => {
-    return apiRequest('market-intelligence/price-history', {
-      method: 'GET',
-      params: { 
-        item,
-        timeframe
-      }
-    })
-  },
-
-  getRecommendations: async (budget: number, preferences: string[]) => {
-    return apiRequest('market-intelligence/recommendations', {
-      method: 'POST',
-      body: {
-        budget,
-        preferences
-      }
-    })
-  }
-}
-
 // User Management API
 export const userAPI = {
   updateProfile: async (userId: number, userData: any) => {
@@ -250,6 +217,205 @@ export const healthAPI = {
       }
     })
   }
+}
+
+// ---------------------------------------------------------------------------
+// Marketplace (food seller / buyer e-commerce)
+// ---------------------------------------------------------------------------
+
+export type ListingNutrition = {
+  calories?: number | null
+  protein?: number | null
+  carbs?: number | null
+  fat?: number | null
+  fiber?: number | null
+  sugar?: number | null
+  sodium?: number | null
+}
+
+export type FoodListing = ListingNutrition & {
+  id: number
+  seller_id: number
+  seller_name?: string | null
+  name: string
+  description?: string | null
+  image_url?: string | null
+  price: number
+  unit: string
+  stock: number
+  is_active: boolean
+  serving_size?: string | null
+  tags: string[]
+  created_at: string
+  updated_at?: string | null
+}
+
+export type OrderItem = {
+  id: number
+  listing_id: number
+  name_snapshot: string
+  unit_price: number
+  quantity: number
+  listing_image_url?: string | null
+  listing_nutrition?: ListingNutrition | null
+  listing_tags: string[]
+}
+
+export type OrderStatus = 'pending' | 'confirmed' | 'fulfilled' | 'cancelled'
+
+export type MarketplaceOrder = {
+  id: number
+  buyer_id: number
+  seller_id: number
+  buyer_name?: string | null
+  seller_name?: string | null
+  status: OrderStatus
+  total_price: number
+  notes?: string | null
+  nutrient_target?: ListingNutrition | null
+  items: OrderItem[]
+  created_at: string
+  updated_at?: string | null
+}
+
+export type ListingSearchFilters = {
+  q?: string
+  tags?: string[]
+  min_protein?: number
+  max_sugar?: number
+  min_fiber?: number
+  max_calories?: number
+  max_price?: number
+  in_stock_only?: boolean
+  sort_by?: 'newest' | 'protein_per_dollar' | 'price_asc' | 'price_desc'
+  limit?: number
+  offset?: number
+}
+
+function buildListingSearchParams(filters: ListingSearchFilters = {}): Record<string, string> {
+  const params: Record<string, string> = {}
+  if (filters.q) params.q = filters.q
+  if (filters.tags && filters.tags.length) params.tags = filters.tags.join(',')
+  if (filters.min_protein != null) params.min_protein = String(filters.min_protein)
+  if (filters.max_sugar != null) params.max_sugar = String(filters.max_sugar)
+  if (filters.min_fiber != null) params.min_fiber = String(filters.min_fiber)
+  if (filters.max_calories != null) params.max_calories = String(filters.max_calories)
+  if (filters.max_price != null) params.max_price = String(filters.max_price)
+  if (filters.in_stock_only != null) params.in_stock_only = String(filters.in_stock_only)
+  if (filters.sort_by) params.sort_by = filters.sort_by
+  if (filters.limit != null) params.limit = String(filters.limit)
+  if (filters.offset != null) params.offset = String(filters.offset)
+  return params
+}
+
+export const marketplaceAPI = {
+  // Listings
+  searchListings: async (filters: ListingSearchFilters = {}): Promise<FoodListing[]> => {
+    return apiRequest('marketplace/listings', {
+      method: 'GET',
+      params: buildListingSearchParams(filters),
+    })
+  },
+
+  getListing: async (listingId: number): Promise<FoodListing> => {
+    return apiRequest(`marketplace/listings/${listingId}`, { method: 'GET' })
+  },
+
+  getSellerListings: async (
+    sellerId: number,
+    includeInactive: boolean = true
+  ): Promise<FoodListing[]> => {
+    return apiRequest(`marketplace/sellers/${sellerId}/listings`, {
+      method: 'GET',
+      params: { include_inactive: String(includeInactive) },
+    })
+  },
+
+  createListing: async (
+    sellerId: number,
+    data: Partial<FoodListing> & { name: string; price: number }
+  ): Promise<FoodListing> => {
+    return apiRequest('marketplace/listings', {
+      method: 'POST',
+      params: { seller_id: String(sellerId) },
+      body: data,
+    })
+  },
+
+  updateListing: async (
+    sellerId: number,
+    listingId: number,
+    data: Partial<FoodListing>
+  ): Promise<FoodListing> => {
+    return apiRequest(`marketplace/listings/${listingId}`, {
+      method: 'PUT',
+      params: { seller_id: String(sellerId) },
+      body: data,
+    })
+  },
+
+  deleteListing: async (sellerId: number, listingId: number) => {
+    return apiRequest(`marketplace/listings/${listingId}`, {
+      method: 'DELETE',
+      params: { seller_id: String(sellerId) },
+    })
+  },
+
+  // Orders
+  createOrder: async (
+    buyerId: number,
+    body: {
+      items: { listing_id: number; quantity: number }[]
+      notes?: string
+      nutrient_target?: ListingNutrition
+    }
+  ): Promise<MarketplaceOrder[]> => {
+    return apiRequest('marketplace/orders', {
+      method: 'POST',
+      params: { buyer_id: String(buyerId) },
+      body,
+    })
+  },
+
+  listOrders: async (
+    userId: number,
+    role: 'buyer' | 'seller' = 'buyer',
+    status?: OrderStatus
+  ): Promise<MarketplaceOrder[]> => {
+    const params: Record<string, string> = {
+      user_id: String(userId),
+      role,
+    }
+    if (status) params.status = status
+    return apiRequest('marketplace/orders', { method: 'GET', params })
+  },
+
+  getOrder: async (userId: number, orderId: number): Promise<MarketplaceOrder> => {
+    return apiRequest(`marketplace/orders/${orderId}`, {
+      method: 'GET',
+      params: { user_id: String(userId) },
+    })
+  },
+
+  updateOrderStatus: async (
+    userId: number,
+    orderId: number,
+    status: OrderStatus
+  ): Promise<MarketplaceOrder> => {
+    return apiRequest(`marketplace/orders/${orderId}/status`, {
+      method: 'PATCH',
+      params: { user_id: String(userId) },
+      body: { status },
+    })
+  },
+
+  // Role management
+  updateRole: async (userId: number, role: 'buyer' | 'seller' | 'both') => {
+    return apiRequest(`profile/${userId}/role`, {
+      method: 'PATCH',
+      body: { role },
+    })
+  },
 }
 
 // Error handling utility

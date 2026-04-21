@@ -9,11 +9,13 @@ import {
   User as UserIcon,
   Utensils,
   Apple,
-  BarChart3,
   Menu,
   X,
   LogIn,
   LogOut,
+  ShoppingBasket,
+  Store,
+  Receipt,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/lib/user-context"
@@ -26,11 +28,11 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string }>
 }
 
-const NAV_ITEMS: NavItem[] = [
+const CORE_NAV_ITEMS: NavItem[] = [
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/meal-plan", label: "Meal Plan", icon: Utensils },
   { href: "/analyze-food", label: "Analyze", icon: Apple },
-  { href: "/market", label: "Market", icon: BarChart3 },
+  { href: "/marketplace", label: "Market", icon: ShoppingBasket },
   { href: "/profile", label: "Profile", icon: UserIcon },
 ]
 
@@ -38,7 +40,24 @@ export function Navbar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [signInOpen, setSignInOpen] = useState(false)
-  const { userId, fullName, email, ready, clearUser } = useUser()
+  const { userId, fullName, email, ready, clearUser, isSeller } = useUser()
+
+  // Seller-only shortcuts merge in after the public marketplace link.
+  const navItems: NavItem[] = [...CORE_NAV_ITEMS]
+  if (userId && isSeller) {
+    navItems.splice(navItems.length - 1, 0, {
+      href: "/marketplace/sell",
+      label: "Sell",
+      icon: Store,
+    })
+  }
+  if (userId) {
+    navItems.splice(navItems.length - 1, 0, {
+      href: "/marketplace/orders",
+      label: "Orders",
+      icon: Receipt,
+    })
+  }
 
   useEffect(() => {
     setOpen(false)
@@ -77,7 +96,7 @@ export function Navbar() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const Icon = item.icon
               const active = isActive(item.href)
               return (
@@ -174,7 +193,7 @@ export function Navbar() {
             {identityLabel}
           </span>
         </div>
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon
           const active = isActive(item.href)
           return (

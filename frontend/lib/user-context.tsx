@@ -20,19 +20,30 @@ type HealthProfile = {
   target_fat?: number
 }
 
+export type UserRole = "buyer" | "seller" | "both"
+
 type UserState = {
   userId: number | null
   email: string | null
   fullName: string | null
+  role: UserRole
   profile: HealthProfile | null
 }
 
 type UserContextValue = UserState & {
-  setUser: (u: { userId: number; email?: string | null; fullName?: string | null }) => void
+  setUser: (u: {
+    userId: number
+    email?: string | null
+    fullName?: string | null
+    role?: UserRole | null
+  }) => void
   setProfile: (p: HealthProfile | null) => void
+  setRole: (role: UserRole) => void
   clearUser: () => void
   apiUrl: string
   ready: boolean
+  isSeller: boolean
+  isBuyer: boolean
 }
 
 const STORAGE_KEY = "nutrition-coach.user"
@@ -41,7 +52,12 @@ const defaultState: UserState = {
   userId: null,
   email: null,
   fullName: null,
+  role: "buyer",
   profile: null,
+}
+
+function normalizeRole(role: unknown): UserRole {
+  return role === "seller" || role === "both" ? role : "buyer"
 }
 
 const UserContext = createContext<UserContextValue | undefined>(undefined)
@@ -56,6 +72,7 @@ function loadFromStorage(): UserState {
       userId: typeof parsed.userId === "number" ? parsed.userId : null,
       email: parsed.email ?? null,
       fullName: parsed.fullName ?? null,
+      role: normalizeRole(parsed.role),
       profile: parsed.profile ?? null,
     }
   } catch {
@@ -91,11 +108,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       userId: u.userId,
       email: u.email ?? prev.email,
       fullName: u.fullName ?? prev.fullName,
+      role: u.role ? normalizeRole(u.role) : prev.role,
     }))
   }, [])
 
   const setProfile: UserContextValue["setProfile"] = useCallback((p) => {
     setState((prev) => ({ ...prev, profile: p }))
+  }, [])
+
+  const setRole: UserContextValue["setRole"] = useCallback((role) => {
+    setState((prev) => ({ ...prev, role: normalizeRole(role) }))
   }, [])
 
   const clearUser = useCallback(() => {
@@ -111,9 +133,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     ...state,
     setUser,
     setProfile,
+    setRole,
     clearUser,
     apiUrl,
     ready,
+    isSeller: state.role === "seller" || state.role === "both",
+    isBuyer: state.role === "buyer" || state.role === "both",
   }
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>
