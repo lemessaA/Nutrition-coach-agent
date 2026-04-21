@@ -42,7 +42,6 @@ app.include_router(profile.router, prefix="/api/v1", tags=["profile"])
 app.include_router(meal_plan.router, prefix="/api/v1", tags=["meal-plan"])
 app.include_router(analyze_food.router, prefix="/api/v1", tags=["analyze-food"])
 app.include_router(foods.router, prefix="/api/v1", tags=["foods"])
-app.include_router(market.router, prefix="/api/v1", tags=["market"])
 
 
 @app.get("/")

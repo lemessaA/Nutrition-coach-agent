@@ -25,12 +25,27 @@ class GoalEnum(PyEnum):
     maintain_health = "maintain_health"
 
 
+class UserRoleEnum(PyEnum):
+    buyer = "buyer"
+    seller = "seller"
+    both = "both"
+
+
+class OrderStatusEnum(PyEnum):
+    pending = "pending"
+    confirmed = "confirmed"
+    fulfilled = "fulfilled"
+    cancelled = "cancelled"
+
+
 class User(Base):
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     full_name = Column(String, nullable=False)
+    # Plain string to keep lightweight migrations portable across SQLite / Postgres.
+    role = Column(String, nullable=False, default=UserRoleEnum.buyer.value, server_default=UserRoleEnum.buyer.value)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -39,6 +54,19 @@ class User(Base):
     meal_plans = relationship("MealPlan", back_populates="user") # one-to-many relationship
     chat_messages = relationship("ChatMessage", back_populates="user") # one-to-many relationship
     food_analyses = relationship("FoodAnalysis", back_populates="user") # one-to-many relationship
+    listings = relationship("FoodListing", back_populates="seller", cascade="all, delete-orphan")
+    orders_as_buyer = relationship(
+        "Order",
+        back_populates="buyer",
+        foreign_keys="Order.buyer_id",
+        cascade="all, delete-orphan",
+    )
+    orders_as_seller = relationship(
+        "Order",
+        back_populates="seller",
+        foreign_keys="Order.seller_id",
+        cascade="all, delete-orphan",
+    )
 
 
 class UserProfile(Base):
@@ -175,3 +203,98 @@ class MarketData(Base):
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+# ---------------------------------------------------------------------------
+# Marketplace (food seller / buyer e-commerce)
+# ---------------------------------------------------------------------------
+
+class FoodListing(Base):
+    """A food product that a seller offers on the marketplace."""
+
+    __tablename__ = "food_listings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    seller_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    # Product details
+    name = Column(String, nullable=False, index=True)
+    description = Column(Text)
+    image_url = Column(String)
+
+    # Pricing and availability
+    price = Column(Float, nullable=False)           # price per serving/unit
+    unit = Column(String, nullable=False, default="serving")  # e.g. "serving", "kg", "bag"
+    stock = Column(Integer, nullable=False, default=0)
+    is_active = Column(Boolean, nullable=False, default=True)
+
+    # Nutrition (per serving/unit)
+    serving_size = Column(String)           # human-readable e.g. "100 g"
+    calories = Column(Float)
+    protein = Column(Float)
+    carbs = Column(Float)
+    fat = Column(Float)
+    fiber = Column(Float)
+    sugar = Column(Float)
+    sodium = Column(Float)
+
+    # Freeform tags: "vegan", "gluten-free", "high-protein", "organic" ...
+    tags = Column(Text)  # JSON array string
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    seller = relationship("User", back_populates="listings")
+    order_items = relationship("OrderItem", back_populates="listing")
+
+
+class Order(Base):
+    """A buyer's order with one seller.
+
+    Orders are per-seller: if a buyer places items from multiple sellers the
+    API splits the cart into separate ``Order`` rows so each seller can manage
+    their own fulfilment independently.
+    """
+
+    __tablename__ = "orders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    buyer_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    seller_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    status = Column(
+        String,
+        nullable=False,
+        default=OrderStatusEnum.pending.value,
+        server_default=OrderStatusEnum.pending.value,
+    )
+    total_price = Column(Float, nullable=False, default=0.0)
+    # Optional buyer-supplied nutrition targets for this order.
+    nutrient_target = Column(Text)  # JSON string
+    notes = Column(Text)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    buyer = relationship("User", back_populates="orders_as_buyer", foreign_keys=[buyer_id])
+    seller = relationship("User", back_populates="orders_as_seller", foreign_keys=[seller_id])
+    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+
+
+class OrderItem(Base):
+    """A single line-item on an order referencing a listing."""
+
+    __tablename__ = "order_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False, index=True)
+    listing_id = Column(Integer, ForeignKey("food_listings.id"), nullable=False, index=True)
+
+    quantity = Column(Integer, nullable=False, default=1)
+    # Snapshot of the listing at order time so history stays correct even if
+    # the seller later renames or reprices their product.
+    unit_price = Column(Float, nullable=False)
+    name_snapshot = Column(String, nullable=False)
+
+    order = relationship("Order", back_populates="items")
+    listing = relationship("FoodListing", back_populates="order_items")

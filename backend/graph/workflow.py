@@ -10,7 +10,6 @@ from agents.meal_planner_agent import MealPlannerAgent
 from agents.nutrition_knowledge_agent import NutritionKnowledgeAgent
 from agents.food_analyzer_agent import FoodAnalyzerAgent
 from agents.coaching_agent import CoachingAgent
-from agents.market_intelligence_agent import MarketIntelligenceAgent
 
 
 class NutritionCoachState(TypedDict):
@@ -38,7 +37,6 @@ class NutritionCoachWorkflow:
             "nutrition_knowledge_agent": NutritionKnowledgeAgent(),
             "food_analyzer_agent": FoodAnalyzerAgent(),
             "coaching_agent": CoachingAgent(),
-            "market_intelligence_agent": MarketIntelligenceAgent()
         }
         
         # Build the workflow graph
@@ -247,8 +245,6 @@ class NutritionCoachWorkflow:
             return await self._format_profile_response(response_data)
         elif agent_name == "coaching_agent":
             return await self._format_coaching_response(response_data)
-        elif agent_name == "market_intelligence_agent":
-            return await self._format_market_response(response_data)
         else:
             # Default formatting
             return response_data.get("response", "Request completed successfully.")
@@ -261,7 +257,6 @@ class NutritionCoachWorkflow:
             "nutrition_knowledge_agent": "I'm having trouble finding nutrition information. Please rephrase your question.",
             "food_analyzer_agent": "I can't analyze that food right now. Please try again.",
             "coaching_agent": "I'm having trouble providing coaching support right now. Please try again.",
-            "market_intelligence_agent": "I can't access market information right now. Please try again later."
         }
         
         return error_messages.get(agent_name, f"Error: {error}")
@@ -367,32 +362,6 @@ class NutritionCoachWorkflow:
             response += f"💭 *{quote}*"
         
         return response or response_data.get("response", "I'm here to support you!")
-    
-    async def _format_market_response(self, response_data: Dict[str, Any]) -> str:
-        """Format market intelligence response"""
-        if "price_results" in response_data:
-            price_results = response_data["price_results"]
-            
-            response = f"**Market Price Information:** 💰\n\n"
-            
-            for result in price_results[:5]:
-                item = result.get("item", "Unknown")
-                price = result.get("price", 0)
-                unit = result.get("unit", "")
-                response += f"• {item}: ${price}/{unit}\n"
-            
-            alternatives = response_data.get("alternatives", [])
-            if alternatives:
-                response += "\n**Budget-Friendly Alternatives:**\n"
-                for alt in alternatives[:3]:
-                    original = alt.get("original_item", "")
-                    alternative = alt.get("alternative", "")
-                    savings = alt.get("estimated_savings", "")
-                    response += f"• {alternative} instead of {original} (Save {savings})\n"
-            
-            return response
-        
-        return response_data.get("response", "Market information retrieved!")
     
     async def process_message(
         self, 

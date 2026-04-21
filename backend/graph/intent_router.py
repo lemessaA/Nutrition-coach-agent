@@ -70,17 +70,6 @@ class IntentRouter:
                 r"celebrate\s+(progress|success)",
                 r"daily\s+check.?in"
             ],
-            "market_intelligence": [
-                r"price\s+of",
-                r"cost\s+of",
-                r"where\s+to\s+buy",
-                r"seasonal\s+(produce|food)",
-                r"budget\s+(friendly|options)",
-                r"cheap\s+(healthy|food)",
-                r"market\s+(prices|trends)",
-                r"food\s+prices?",
-                r"grocery\s+(prices|cost)"
-            ],
             "general_chat": [
                 r"hello",
                 r"hi",
@@ -101,7 +90,6 @@ class IntentRouter:
             "nutrition_knowledge": "nutrition_knowledge_agent",
             "food_analysis": "food_analyzer_agent",
             "coaching": "coaching_agent",
-            "market_intelligence": "market_intelligence_agent",
             "general_chat": "coaching_agent"  # Default to coaching for general chat
         }
     
@@ -152,7 +140,6 @@ class IntentRouter:
         - nutrition_knowledge: User asks nutrition questions or wants information
         - food_analysis: User wants to analyze food for calories/macros
         - coaching: User needs motivation, habit help, or emotional support
-        - market_intelligence: User asks about food prices, availability, or budget options
         - general_chat: General conversation, greetings, or help requests
         
         Respond with JSON format: {"intent": "category", "confidence": 0.0, "reasoning": "explanation"}
@@ -249,19 +236,6 @@ class IntentRouter:
                 base_input["action"] = "daily_check_in"
             
             base_input["user_goal"] = context.get("user_profile", {}).get("goal")
-        
-        elif intent == "market_intelligence":
-            if "price" in message.lower() or "cost" in message.lower():
-                base_input["action"] = "search_prices"
-                base_input["food_items"] = self._extract_food_items(message)
-            elif "seasonal" in message.lower():
-                base_input["action"] = "seasonal_recommendations"
-            elif "budget" in message.lower():
-                base_input["action"] = "budget_analysis"
-            else:
-                base_input["action"] = "availability_check"
-            
-            base_input["location"] = context.get("location", "general")
         
         elif intent == "general_chat":
             base_input["action"] = "motivate"  # Default to coaching response
