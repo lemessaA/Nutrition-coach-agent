@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 import { Toaster } from '@/components/ui/toaster'
 import { Navbar } from '@/components/Navbar'
 import { UserProvider } from '@/lib/user-context'
+import { ThemeProvider, themeInitScript } from '@/lib/theme-context'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -24,7 +25,10 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: 'cover',
-  themeColor: '#10b981',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#10b981' },
+    { media: '(prefers-color-scheme: dark)', color: '#0b1220' },
+  ],
 }
 
 export default function RootLayout({
@@ -33,17 +37,22 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className={inter.className}>
-        <UserProvider>
-          <div className="flex min-h-dvh flex-col bg-gradient-to-br from-green-50 to-blue-50">
-            <Navbar />
-            <main className="flex-1 pb-[env(safe-area-inset-bottom)]">
-              {children}
-            </main>
-          </div>
-          <Toaster />
-        </UserProvider>
+        <ThemeProvider>
+          <UserProvider>
+            <div className="app-bg flex min-h-dvh flex-col">
+              <Navbar />
+              <main className="flex-1 pb-[env(safe-area-inset-bottom)]">
+                {children}
+              </main>
+            </div>
+            <Toaster />
+          </UserProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
