@@ -3,49 +3,61 @@
 @tailwind utilities;
 
 @layer base {
+  /* Modern emerald + slate palette.
+     Light mode: clean near-white with emerald accents.
+     Dark mode: deep slate-950 with brighter emerald primary for contrast. */
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 142.1 76.2% 36.3%;
-    --primary-foreground: 355.7 100% 97.3%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 152 69% 41%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
+    --secondary-foreground: 222 47% 11%;
     --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 142.1 76.2% 36.3%;
-    --radius: 0.5rem;
+    --muted-foreground: 215 16% 47%;
+    --accent: 152 55% 94%;
+    --accent-foreground: 152 70% 20%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 20% 91%;
+    --input: 215 20% 91%;
+    --ring: 152 69% 41%;
+    --radius: 0.75rem;
+
+    /* Decorative background layer (used in layout.tsx). */
+    --app-bg-from: 152 80% 96%;
+    --app-bg-via: 0 0% 100%;
+    --app-bg-to: 210 100% 97%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 47% 7%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 222 45% 10%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 45% 10%;
     --popover-foreground: 210 40% 98%;
-    --primary: 142.1 70.6% 45.3%;
-    --primary-foreground: 144.9 80.4% 10%;
-    --secondary: 217.2 32.6% 17.5%;
+    --primary: 152 60% 52%;
+    --primary-foreground: 152 75% 10%;
+    --secondary: 217 32% 14%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 142.4 71.8% 29.2%;
+    --muted: 217 32% 14%;
+    --muted-foreground: 215 20% 70%;
+    --accent: 152 40% 18%;
+    --accent-foreground: 152 70% 78%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 217 32% 18%;
+    --input: 217 32% 18%;
+    --ring: 152 60% 52%;
+
+    --app-bg-from: 222 47% 6%;
+    --app-bg-via: 222 47% 7%;
+    --app-bg-to: 220 40% 9%;
   }
 }
 
@@ -55,10 +67,15 @@
   }
   html {
     -webkit-text-size-adjust: 100%;
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     overscroll-behavior-y: none;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
   /* Prevent iOS Safari auto-zoom on focus: inputs must be >= 16px */
   input,
@@ -76,6 +93,27 @@
 }
 
 @layer components {
+  /* Full-page app background — theme-aware, subtle mesh gradient. */
+  .app-bg {
+    background:
+      radial-gradient(
+        60rem 40rem at 80% -10%,
+        hsl(var(--primary) / 0.12),
+        transparent 60%
+      ),
+      radial-gradient(
+        50rem 35rem at -10% 110%,
+        hsl(220 90% 60% / 0.1),
+        transparent 60%
+      ),
+      linear-gradient(
+        135deg,
+        hsl(var(--app-bg-from)) 0%,
+        hsl(var(--app-bg-via)) 50%,
+        hsl(var(--app-bg-to)) 100%
+      );
+  }
+
   /* Enhanced button styles */
   .btn-glow {
     @apply transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-lg;
@@ -88,9 +126,12 @@
     }
   }
 
-  /* Gradient text */
+  /* Gradient text — adapts nicely in dark mode too */
   .gradient-text {
-    @apply bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-emerald-600 to-sky-600 bg-clip-text text-transparent;
+  }
+  .dark .gradient-text {
+    @apply from-emerald-400 to-sky-400;
   }
 
   /* Smooth animations */
