@@ -287,21 +287,43 @@ class MarketIntelligenceAgent(BaseAgent):
             db.close()
 
     async def _search_external_prices(self, item: str) -> Dict[str, Any]:
-        """Hit Open Food Facts Prices API for a live price snapshot."""
+        """Hit Open Food Facts Prices API for a live price snapshot.
+
+        Flow:
+          1. `/api/v1/products?product_name__like={item}&price_count__gte=1`
+             returns the products (with ids) whose name matches and that
+             have at least one real price reported.
+          2. For the top few matches, fetch `/api/v1/prices?product_id=...`
+             in parallel and aggregate into a median price.
+        """
         try:
             session = await self._get_session()
-            params = {
-                "product_name_like": item,
-                "page_size": 25,
-                "order_by": "-date",
-            }
-            async with session.get(f"{_OFF_PRICES_BASE}/prices", params=params) as resp:
-                if resp.status >= 500:
-                    raise RuntimeError(f"OFF prices status {resp.status}")
-                data = await resp.json(content_type=None)
+            products = await self._fetch_matching_products(session, item, limit=5)
+            if not products:
+                return {
+                    "item": item,
+                    "location": "national_average",
+                    "price": None,
+                    "unit": "unit",
+                    "source": "openfoodfacts-prices",
+                    "availability": "unknown",
+                    "note": "No live price data found for this item",
+                }
 
-            items = data.get("items") or []
-            prices = [float(p["price"]) for p in items if isinstance(p.get("price"), (int, float))]
+            price_lists = await asyncio.gather(
+                *(self._fetch_product_prices(session, p["id"]) for p in products),
+                return_exceptions=True,
+            )
+            all_entries: List[Dict[str, Any]] = []
+            for pl in price_lists:
+                if isinstance(pl, list):
+                    all_entries.extend(pl)
+
+            prices = [
+                float(p["price"])
+                for p in all_entries
+                if isinstance(p.get("price"), (int, float))
+            ]
             if not prices:
                 return {
                     "item": item,
@@ -314,21 +336,20 @@ class MarketIntelligenceAgent(BaseAgent):
                 }
 
             median_price = round(statistics.median(prices), 2)
-            currency = _majority(p.get("currency") for p in items) or "USD"
-            locations = [
-                (p.get("location") or {}).get("osm_address_country") for p in items
-            ]
-            country = _majority(locations) or "multi-region"
-            brands = _majority(
-                (p.get("product") or {}).get("brands") for p in items
-            )
+            currency = _majority(p.get("currency") for p in all_entries) or "EUR"
+            country = _majority(
+                (p.get("location") or {}).get("osm_address_country") for p in all_entries
+            ) or "multi-region"
+            brands = _majority(p.get("brands") for p in products)
             last = max(
-                (p.get("updated") or p.get("created") or "" for p in items),
+                (p.get("updated") or p.get("created") or "" for p in all_entries),
                 default="",
             )
+            matched_name = products[0].get("product_name") or item
 
             return {
                 "item": item,
+                "matched_product": matched_name,
                 "location": country,
                 "price": median_price,
                 "price_range": {"min": round(min(prices), 2), "max": round(max(prices), 2)},
@@ -349,6 +370,38 @@ class MarketIntelligenceAgent(BaseAgent):
                 "error": f"Could not fetch price data: {e}",
                 "source": "openfoodfacts-prices",
             }
+
+    async def _fetch_matching_products(
+        self,
+        session: aiohttp.ClientSession,
+        query: str,
+        limit: int = 5,
+    ) -> List[Dict[str, Any]]:
+        """Return products whose name matches and that have at least one price."""
+        params = {
+            "product_name__like": query,
+            "price_count__gte": 1,
+            "page_size": limit,
+            "order_by": "-price_count",
+        }
+        async with session.get(f"{_OFF_PRICES_BASE}/products", params=params) as resp:
+            if resp.status != 200:
+                return []
+            data = await resp.json(content_type=None)
+        return data.get("items") or []
+
+    async def _fetch_product_prices(
+        self,
+        session: aiohttp.ClientSession,
+        product_id: int,
+        limit: int = 10,
+    ) -> List[Dict[str, Any]]:
+        params = {"product_id": product_id, "page_size": limit, "order_by": "-date"}
+        async with session.get(f"{_OFF_PRICES_BASE}/prices", params=params) as resp:
+            if resp.status != 200:
+                return []
+            data = await resp.json(content_type=None)
+        return data.get("items") or []
 
     def _store_market_data(self, record: Dict[str, Any]) -> None:
         """Upsert a price snapshot into the `market_data` table."""
