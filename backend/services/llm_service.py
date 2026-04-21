@@ -1,9 +1,72 @@
 from typing import Optional, Dict, Any
+import json
+import re
 from langchain_core.language_models.llms import LLM
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from config import settings
+
+
+def _extract_json(text: str) -> Optional[Any]:
+    """Best-effort JSON extraction from an LLM response.
+
+    Handles: pure JSON, ```json fenced code blocks, plain ``` fences, and
+    prose that contains a single balanced JSON object or array.
+    Returns the parsed value, or None if nothing parseable was found.
+    """
+    if not text or not isinstance(text, str):
+        return None
+
+    cleaned = text.strip()
+
+    # 1. Direct parse
+    try:
+        return json.loads(cleaned)
+    except Exception:
+        pass
+
+    # 2. Strip a ```json ... ``` or ``` ... ``` fence
+    fence = re.search(r"```(?:json)?\s*(.+?)\s*```", cleaned, re.DOTALL | re.IGNORECASE)
+    if fence:
+        inner = fence.group(1).strip()
+        try:
+            return json.loads(inner)
+        except Exception:
+            cleaned = inner  # fall through to balanced-brace search
+
+    # 3. Find the first balanced JSON object or array in the text
+    for opener, closer in (("{", "}"), ("[", "]")):
+        start = cleaned.find(opener)
+        while start != -1:
+            depth = 0
+            in_str = False
+            esc = False
+            for i in range(start, len(cleaned)):
+                c = cleaned[i]
+                if in_str:
+                    if esc:
+                        esc = False
+                    elif c == "\\":
+                        esc = True
+                    elif c == '"':
+                        in_str = False
+                else:
+                    if c == '"':
+                        in_str = True
+                    elif c == opener:
+                        depth += 1
+                    elif c == closer:
+                        depth -= 1
+                        if depth == 0:
+                            candidate = cleaned[start : i + 1]
+                            try:
+                                return json.loads(candidate)
+                            except Exception:
+                                break
+            start = cleaned.find(opener, start + 1)
+
+    return None
 
 
 class LLMService:
@@ -77,23 +140,63 @@ class LLMService:
         context: Optional[Dict[str, Any]] = None,
         output_schema: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Generate a structured response from the LLM"""
-        if output_schema:
-            schema_instruction = f"Please respond in the following JSON format: {output_schema}"
-            prompt = f"{prompt}\n\n{schema_instruction}"
-        
-        response = await self.generate_response(prompt, system_message, context)
-        
-        # Try to parse as JSON if schema was provided
-        if output_schema:
+        """Generate a structured response from the LLM.
+
+        Uses provider JSON mode when available (Groq / OpenAI chat models both
+        support ``response_format={"type": "json_object"}``) and falls back to
+        tolerant JSON extraction for plain-text responses.
+        """
+        if output_schema is None:
+            response = await self.generate_response(prompt, system_message, context)
+            return {"response": response}
+
+        # Tighten the instructions so the LLM is pushed to emit only JSON.
+        schema_instruction = (
+            "Respond with ONLY a single valid JSON object that matches this schema "
+            "(no markdown fences, no commentary, no trailing text):\n"
+            f"{json.dumps(output_schema)}"
+        )
+        final_prompt = f"{prompt}\n\n{schema_instruction}"
+
+        # Try the JSON-mode path first if the LLM supports binding response_format.
+        text: Optional[str] = None
+        if self.llm is not None:
             try:
-                import json
-                return json.loads(response)
-            except json.JSONDecodeError:
-                # If JSON parsing fails, return the raw response
-                return {"response": response}
-        
-        return {"response": response}
+                messages = []
+                if system_message:
+                    messages.append(SystemMessage(content=system_message))
+                if context:
+                    context_str = "\n".join([f"{k}: {v}" for k, v in context.items()])
+                    prompted = f"Context:\n{context_str}\n\nUser Request:\n{final_prompt}"
+                else:
+                    prompted = final_prompt
+                messages.append(HumanMessage(content=prompted))
+
+                bound = self.llm
+                try:
+                    bound = self.llm.bind(response_format={"type": "json_object"})
+                except Exception:
+                    # Not all providers accept response_format; that's fine.
+                    bound = self.llm
+
+                gen = await bound.agenerate([messages])
+                text = gen.generations[0][0].text
+            except Exception as e:
+                print(f"Structured LLM call failed ({e}); falling back to plain generation")
+                text = None
+
+        if text is None:
+            text = await self.generate_response(final_prompt, system_message, context)
+
+        parsed = _extract_json(text)
+        if isinstance(parsed, dict):
+            return parsed
+        if isinstance(parsed, list):
+            return {"items": parsed}
+
+        # No JSON could be recovered. Surface the raw text so callers can
+        # decide whether to retry or synthesize a fallback.
+        return {"error": "parse_failed", "raw": text}
     
     def _get_mock_response(self, prompt: str, system_message: Optional[str] = None, context: Optional[Dict[str, Any]] = None) -> str:
         """Generate AI-mode responses that follow the agent workflow pattern"""
