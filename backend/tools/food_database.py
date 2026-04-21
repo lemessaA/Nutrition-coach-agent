@@ -195,7 +195,8 @@ class FoodDatabase:
             "quantity": quantity,
             "unit": unit,
             "quantity_grams": quantity_g,
-            "nutrition": nutrition
+            "nutrition": nutrition,
+            "source": source,
         }
     
     def _per_item_weight(self, food_name: str) -> float:
