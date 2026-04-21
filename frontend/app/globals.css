@@ -163,9 +163,9 @@
     height: 8px;
   }
   .nice-scroll::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full;
+    @apply bg-muted-foreground/30 rounded-full;
   }
   .nice-scroll::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400;
+    @apply bg-muted-foreground/50;
   }
 }
