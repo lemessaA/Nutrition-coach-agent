@@ -1,6 +1,65 @@
 from typing import Dict, List, Any, Optional
+import asyncio
 import json
+import logging
 import re
+
+logger = logging.getLogger(__name__)
+
+
+def _lookup_external_sync(food_name: str) -> Optional[Dict[str, Any]]:
+    """Bridge: call the async provider registry from sync callers.
+
+    Returns a dict of {"nutrition": per-100g macros, "source": provider name}
+    or None if no provider found the food. Never raises — failures are
+    logged and treated as a miss so the agent keeps working offline.
+    """
+    try:
+        from backend.providers import get_registry  # local to avoid cycles
+    except Exception as e:  # provider module missing / broken
+        logger.debug("Provider registry unavailable: %s", e)
+        return None
+
+    async def _run():
+        registry = get_registry()
+        result = await registry.lookup(query=food_name)
+        return result
+
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            # We're already inside an event loop (e.g. FastAPI request) —
+            # running `asyncio.run` would deadlock. Use a dedicated thread
+            # with its own loop instead.
+            import concurrent.futures
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(asyncio.run, _run())
+                result = future.result(timeout=6)
+        else:
+            result = asyncio.run(_run())
+    except Exception as e:
+        logger.warning("External food lookup failed for '%s': %s", food_name, e)
+        return None
+
+    if result is None:
+        return None
+
+    nf = result.nutrition
+    nutrition = {
+        "calories": round(nf.calories, 1),
+        "protein": round(nf.protein, 1),
+        "carbs": round(nf.carbs, 1),
+        "fat": round(nf.fat, 1),
+        "fiber": round(nf.fiber or 0, 1),
+        "sugar": round(nf.sugar or 0, 1),
+        "sodium": round(nf.sodium or 0, 1),
+    }
+    return {"nutrition": nutrition, "source": result.source}
 
 
 # Approximate weight (grams) of one typical piece of common foods.
