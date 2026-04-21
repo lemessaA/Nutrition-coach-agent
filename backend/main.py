@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from config import settings
 from database.connection import init_db
-from api.routers import chat, profile, meal_plan, analyze_food, foods, market
+from api.routers import chat, profile, meal_plan, analyze_food, foods
 
 
 @asynccontextmanager
@@ -16,11 +16,6 @@ async def lifespan(app: FastAPI):
     try:
         from providers import get_registry
         await get_registry().close()
-    except Exception:
-        pass
-    try:
-        from api.routers.market import _agent as _market_agent
-        await _market_agent.close()
     except Exception:
         pass
 
