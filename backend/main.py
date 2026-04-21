@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from config import settings
 from database.connection import init_db
-from api.routers import chat, profile, meal_plan, analyze_food
+from api.routers import chat, profile, meal_plan, analyze_food, foods
 
 
 @asynccontextmanager
@@ -12,6 +12,12 @@ async def lifespan(app: FastAPI):
     # Initialize database
     await init_db()
     yield
+    # Release provider HTTP sessions on shutdown.
+    try:
+        from backend.providers import get_registry
+        await get_registry().close()
+    except Exception:
+        pass
 
 
 app = FastAPI(
@@ -35,6 +41,7 @@ app.include_router(chat.router, prefix="/api/v1", tags=["chat"])
 app.include_router(profile.router, prefix="/api/v1", tags=["profile"])
 app.include_router(meal_plan.router, prefix="/api/v1", tags=["meal-plan"])
 app.include_router(analyze_food.router, prefix="/api/v1", tags=["analyze-food"])
+app.include_router(foods.router, prefix="/api/v1", tags=["foods"])
 
 
 @app.get("/")
