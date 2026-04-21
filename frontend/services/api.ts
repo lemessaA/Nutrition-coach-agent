@@ -416,6 +416,23 @@ export const marketplaceAPI = {
       body: { role },
     })
   },
+
+  // Listing image upload (multipart/form-data -> returns absolute URL to use in image_url)
+  uploadImage: async (
+    file: File
+  ): Promise<{ url: string; path: string; filename: string; size: number; content_type: string }> => {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch(`${API_BASE_URL}/api/v1/marketplace/uploads`, {
+      method: 'POST',
+      body: form,
+    })
+    if (!res.ok) {
+      const detail = await res.json().catch(() => ({}))
+      throw new Error(detail.detail || `Upload failed: ${res.statusText}`)
+    }
+    return res.json()
+  },
 }
 
 // Error handling utility

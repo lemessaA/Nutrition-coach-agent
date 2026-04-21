@@ -22,10 +22,13 @@ Orders
 from __future__ import annotations
 
 import json
+import os
+import uuid
 from collections import defaultdict
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from database.connection import get_db
@@ -49,6 +52,77 @@ from schemas.marketplace import (
 )
 
 router = APIRouter()
+
+
+# ---------------------------------------------------------------------------
+# Uploads (listing images)
+# ---------------------------------------------------------------------------
+
+# Resolve the uploads directory relative to the backend package root so the
+# location is stable regardless of the current working directory the server
+# was started from.
+UPLOAD_DIR: Path = Path(__file__).resolve().parents[2] / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+ALLOWED_IMAGE_TYPES: Dict[str, str] = {
+    "image/jpeg": ".jpg",
+    "image/jpg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "image/gif": ".gif",
+}
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+@router.post("/marketplace/uploads", status_code=201)
+async def upload_listing_image(
+    request: Request,
+    file: UploadFile = File(..., description="Image file to upload (jpeg/png/webp/gif)"),
+):
+    """Accept a local image upload from the seller dashboard.
+
+    Persists the file under ``backend/uploads/<uuid><ext>`` and returns the
+    public URL that will be mounted at ``/uploads`` by :mod:`backend.main`.
+    Callers then store the returned URL in ``FoodListing.image_url``.
+    """
+    content_type = (file.content_type or "").lower()
+    if content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '{content_type}'. Upload a JPEG, PNG, WEBP or GIF image.",
+        )
+
+    ext = ALLOWED_IMAGE_TYPES[content_type]
+    # Prefer the real extension if the client provided a sensible one.
+    if file.filename:
+        _, client_ext = os.path.splitext(file.filename)
+        client_ext = client_ext.lower()
+        if client_ext in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+            ext = ".jpg" if client_ext == ".jpeg" else client_ext
+
+    contents = await file.read()
+    if len(contents) == 0:
+        raise HTTPException(status_code=400, detail="Empty file")
+    if len(contents) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Max {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
+        )
+
+    filename = f"{uuid.uuid4().hex}{ext}"
+    target = UPLOAD_DIR / filename
+    with target.open("wb") as fh:
+        fh.write(contents)
+
+    # ``request.base_url`` already ends with '/'.
+    absolute_url = f"{str(request.base_url).rstrip('/')}/uploads/{filename}"
+    return {
+        "url": absolute_url,
+        "path": f"/uploads/{filename}",
+        "filename": filename,
+        "size": len(contents),
+        "content_type": content_type,
+    }
 
 
 # ---------------------------------------------------------------------------

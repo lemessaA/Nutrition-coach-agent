@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,6 +25,8 @@ import {
   X,
   DollarSign,
   Save,
+  Upload,
+  ImageIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/lib/user-context"
@@ -672,13 +674,11 @@ function ListingEditorModal({
               onChange={(v) => set("serving_size", v)}
               placeholder="100 g"
             />
-            <Field
-              label="Image URL"
-              value={draft.image_url}
-              onChange={(v) => set("image_url", v)}
-              placeholder="https://..."
-            />
           </div>
+          <ImageUploader
+            value={draft.image_url}
+            onChange={(v) => set("image_url", v)}
+          />
           <label className="flex flex-col gap-1 text-xs font-medium text-foreground/80">
             Description
             <textarea
@@ -753,5 +753,148 @@ function Field({
         className="rounded-md border border-input bg-background px-2 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
       />
     </label>
+  )
+}
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+
+function ImageUploader({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (url: string) => void
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [urlMode, setUrlMode] = useState(false)
+
+  const pickFile = () => inputRef.current?.click()
+
+  const handleFile = async (file: File | null) => {
+    if (!file) return
+    setError(null)
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setError("Please pick a JPEG, PNG, WEBP or GIF image.")
+      return
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setError(`Image is too large (max ${MAX_IMAGE_BYTES / (1024 * 1024)} MB).`)
+      return
+    }
+    setUploading(true)
+    try {
+      const result = await marketplaceAPI.uploadImage(file)
+      onChange(result.url)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed")
+    } finally {
+      setUploading(false)
+      if (inputRef.current) inputRef.current.value = ""
+    }
+  }
+
+  const clearImage = () => {
+    onChange("")
+    setError(null)
+  }
+
+  const hasImage = !!value.trim()
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-foreground/80">Product image</span>
+        {hasImage && (
+          <button
+            type="button"
+            onClick={clearImage}
+            className="text-xs text-muted-foreground hover:text-destructive"
+          >
+            Remove
+          </button>
+        )}
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ALLOWED_IMAGE_TYPES.join(",")}
+        className="hidden"
+        onChange={(e) => void handleFile(e.target.files?.[0] ?? null)}
+      />
+
+      <div className="flex items-stretch gap-3">
+        <div
+          onClick={pickFile}
+          className={cn(
+            "flex h-28 w-28 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md border border-dashed",
+            hasImage ? "border-border bg-muted" : "border-input bg-muted/40 hover:border-primary/40"
+          )}
+          title="Click to upload an image"
+        >
+          {hasImage ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={value} alt="Listing preview" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex flex-col items-center gap-1 text-muted-foreground">
+              <ImageIcon className="h-6 w-6" />
+              <span className="text-[10px]">No image</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-1 flex-col justify-between">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={pickFile}
+              disabled={uploading}
+              className="gap-2"
+            >
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              {uploading ? "Uploading..." : hasImage ? "Replace image" : "Upload from computer"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setUrlMode((v) => !v)}
+              className="text-muted-foreground"
+            >
+              {urlMode ? "Hide URL" : "or paste URL"}
+            </Button>
+          </div>
+
+          {urlMode && (
+            <input
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="https://..."
+              className="mt-2 rounded-md border border-input bg-background px-2 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          )}
+
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            JPEG, PNG, WEBP or GIF. Up to 5 MB.
+          </p>
+        </div>
+      </div>
+
+      {error && (
+        <p className="flex items-center gap-1 text-xs text-destructive">
+          <AlertCircle className="h-3.5 w-3.5" />
+          {error}
+        </p>
+      )}
+    </div>
   )
 }

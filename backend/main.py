@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 from config import settings
@@ -43,6 +46,13 @@ app.include_router(meal_plan.router, prefix="/api/v1", tags=["meal-plan"])
 app.include_router(analyze_food.router, prefix="/api/v1", tags=["analyze-food"])
 app.include_router(foods.router, prefix="/api/v1", tags=["foods"])
 app.include_router(marketplace.router, prefix="/api/v1", tags=["marketplace"])
+
+# Serve locally-uploaded listing images. The directory is created on first
+# upload by the marketplace router; we make sure it exists here so the static
+# mount never fails at startup even on a fresh checkout.
+UPLOADS_DIR = Path(__file__).resolve().parent / "uploads"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 
 @app.get("/")
