@@ -4,8 +4,9 @@ import json
 from typing import Optional, List
 
 from database.connection import get_db
-from database.models import User, UserProfile
+from database.models import User, UserProfile, UserRoleEnum
 from schemas.user import UserCreate, UserResponse, UserProfileCreate, UserProfileUpdate, UserProfileResponse
+from schemas.marketplace import RoleUpdate
 from agents.user_profile_agent import UserProfileAgent
 
 router = APIRouter()
@@ -32,9 +33,14 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
         if existing_user:
             raise HTTPException(status_code=400, detail="Email already registered")
         
+        role = (user.role or UserRoleEnum.buyer.value).strip().lower()
+        if role not in {e.value for e in UserRoleEnum}:
+            role = UserRoleEnum.buyer.value
+
         db_user = User(
             email=normalized_email,
-            full_name=user.full_name
+            full_name=user.full_name,
+            role=role,
         )
         db.add(db_user)
         db.commit()
@@ -44,6 +50,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
             id=db_user.id,
             email=db_user.email,
             full_name=db_user.full_name,
+            role=db_user.role,
             created_at=db_user.created_at
         )
         
@@ -68,6 +75,7 @@ async def get_user_by_email(
             id=user.id,
             email=user.email,
             full_name=user.full_name,
+            role=user.role,
             created_at=user.created_at,
         )
     except HTTPException:
@@ -88,6 +96,7 @@ async def get_user(user_id: int, db: Session = Depends(get_db)):
             id=user.id,
             email=user.email,
             full_name=user.full_name,
+            role=user.role,
             created_at=user.created_at
         )
         
@@ -283,6 +292,44 @@ async def get_user_profile(user_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching profile: {str(e)}")
+
+
+@router.patch("/profile/{user_id}/role", response_model=UserResponse)
+async def update_user_role(
+    user_id: int,
+    payload: RoleUpdate,
+    db: Session = Depends(get_db),
+):
+    """Promote / demote a user between buyer, seller, or both.
+
+    There is no authentication layer yet, so this endpoint currently trusts
+    the caller. It's still useful because it centralises the validation and
+    makes it straightforward to wire in auth later.
+    """
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        new_role = payload.role.strip().lower()
+        if new_role not in {e.value for e in UserRoleEnum}:
+            raise HTTPException(status_code=400, detail="Invalid role")
+
+        user.role = new_role
+        db.commit()
+        db.refresh(user)
+
+        return UserResponse(
+            id=user.id,
+            email=user.email,
+            full_name=user.full_name,
+            role=user.role,
+            created_at=user.created_at,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating role: {str(e)}")
 
 
 @router.delete("/profile/{user_id}")

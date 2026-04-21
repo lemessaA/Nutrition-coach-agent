@@ -7,12 +7,14 @@ from database.models import GenderEnum, ActivityLevelEnum, GoalEnum
 class UserCreate(BaseModel):
     email: EmailStr
     full_name: str
+    role: Optional[str] = "buyer"  # buyer | seller | both
 
 
 class UserResponse(BaseModel):
     id: int
     email: str
     full_name: str
+    role: str = "buyer"
     created_at: datetime
     
     class Config: 
