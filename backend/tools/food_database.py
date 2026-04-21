@@ -15,7 +15,7 @@ def _lookup_external_sync(food_name: str) -> Optional[Dict[str, Any]]:
     logged and treated as a miss so the agent keeps working offline.
     """
     try:
-        from backend.providers import get_registry  # local to avoid cycles
+        from providers import get_registry  # local to avoid cycles
     except Exception as e:  # provider module missing / broken
         logger.debug("Provider registry unavailable: %s", e)
         return None

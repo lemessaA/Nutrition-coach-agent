@@ -14,7 +14,7 @@ async def lifespan(app: FastAPI):
     yield
     # Release provider HTTP sessions on shutdown.
     try:
-        from backend.providers import get_registry
+        from providers import get_registry
         await get_registry().close()
     except Exception:
         pass
