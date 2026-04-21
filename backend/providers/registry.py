@@ -204,7 +204,7 @@ def _build_default_registry() -> FoodProviderRegistry:
     Kept here (instead of in __init__) so that tests can construct their own
     registry with mock providers.
     """
-    from backend.config import settings  # local import to avoid cycle at import time
+    from config import settings  # local import to avoid cycle at import time
     from .openfoodfacts import OpenFoodFactsProvider
     from .usda import USDAProvider
     from .nutritionix import NutritionixProvider

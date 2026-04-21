@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from backend.providers import get_registry
+from providers import get_registry
 
 router = APIRouter()
 
