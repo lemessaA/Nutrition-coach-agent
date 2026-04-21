@@ -727,6 +727,11 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      <SignInDialog
+        open={signInOpen}
+        onClose={() => setSignInOpen(false)}
+      />
     </div>
   )
 }
