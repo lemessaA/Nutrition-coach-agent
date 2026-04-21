@@ -85,16 +85,35 @@ def _infer_demand(trend_name: str) -> str:
 
 
 def _to_market_item(trend: Dict[str, Any], insights: List[str]) -> Dict[str, Any]:
-    """Map agent trend output -> frontend MarketData shape."""
+    """Map agent trend output -> frontend MarketData shape.
+
+    The agent now returns real medians from Open Food Facts Prices. We use
+    those when present and only fall back to a deterministic seeded number
+    if the upstream didn't give us one (e.g. fallback / `source="fallback"`).
+    """
     trend_name = trend.get("trend") or trend.get("trend_name") or "Unknown trend"
     description = trend.get("description") or ""
     growth = trend.get("growth")
     change_pct = _growth_to_percent(growth)
+    samples = int(trend.get("samples") or 0)
+    recent_median = trend.get("recent_median")
+    prior_median = trend.get("prior_median")
 
+    if isinstance(recent_median, (int, float)):
+        current_price = round(float(recent_median), 2)
+        if isinstance(prior_median, (int, float)) and prior_median:
+            price_change = round(float(recent_median) - float(prior_median), 2)
+        else:
+            price_change = round(current_price * (change_pct / 100.0), 2)
+    else:
+        rng = _stable_seed(trend_name)
+        current_price = round(rng.uniform(2.5, 14.0), 2)
+        price_change = round(current_price * (change_pct / 100.0), 2)
+
+    # Popularity ~ activity (samples) blended with price movement magnitude.
     rng = _stable_seed(trend_name)
-    current_price = round(rng.uniform(2.5, 14.0), 2)
-    price_change = round(current_price * (change_pct / 100.0), 2)
-    popularity_score = max(10, min(100, int(50 + change_pct + rng.uniform(-8, 8))))
+    base = 40 + min(samples, 50)  # more samples = higher popularity, capped
+    popularity_score = max(10, min(100, int(base + abs(change_pct) + rng.uniform(-5, 5))))
     demand = _infer_demand(trend_name)
 
     return {
@@ -105,6 +124,8 @@ def _to_market_item(trend: Dict[str, Any], insights: List[str]) -> Dict[str, Any
         "price_change_percentage": round(change_pct, 1),
         "market_demand": demand,
         "popularity_score": popularity_score,
+        "samples": samples,
+        "data_source": trend.get("source") or "openfoodfacts-prices",
         "health_benefits": _synthesize_benefits(trend_name),
         "market_insights": [i for i in insights if trend_name.lower() in i.lower()][:3]
         or insights[:2],
