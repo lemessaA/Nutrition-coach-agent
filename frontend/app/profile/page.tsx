@@ -21,11 +21,13 @@ import {
   AlertCircle as AlertTriangle,
   CheckCircle2,
   LogOut,
+  LogIn,
   Loader2,
   X,
 } from "lucide-react"
 import { useUser } from "@/lib/user-context"
 import { cn } from "@/lib/utils"
+import { SignInDialog } from "@/components/SignInDialog"
 
 type Gender = "male" | "female" | "other"
 type ActivityLevel =
@@ -192,6 +194,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [signInOpen, setSignInOpen] = useState(false)
 
   const calculatedTargets = useMemo(() => computeTargets(form), [form])
 
@@ -391,6 +394,28 @@ export default function ProfilePage() {
             : "Create your personalized nutrition profile"}
         </p>
       </div>
+
+      {ready && !userId && (
+        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-green-200 bg-green-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2 text-green-900">
+            <LogIn className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-semibold">Already have a profile?</p>
+              <p className="text-sm text-green-800">
+                Sign in with your email to load your saved targets and preferences.
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            onClick={() => setSignInOpen(true)}
+            className="bg-green-600 hover:bg-green-700 shrink-0"
+          >
+            <LogIn className="mr-2 h-4 w-4" />
+            Sign in
+          </Button>
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
