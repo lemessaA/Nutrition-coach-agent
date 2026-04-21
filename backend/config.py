@@ -31,9 +31,15 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     
-    # External APIs
+    # External food / nutrition provider APIs
     usda_api_key: Optional[str] = None
-    
+    nutritionix_app_id: Optional[str] = None
+    nutritionix_api_key: Optional[str] = None
+    edamam_app_id: Optional[str] = None
+    edamam_api_key: Optional[str] = None
+    spoonacular_api_key: Optional[str] = None
+    openfoodfacts_enabled: bool = True
+
     class Config:
         env_file = ".env"
 

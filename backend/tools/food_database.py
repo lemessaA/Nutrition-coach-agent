@@ -141,9 +141,23 @@ class FoodDatabase:
         return None
     
     def get_food_info(self, food_name: str, quantity: float = 100, unit: str = "g", size: Optional[str] = None) -> Dict[str, Any]:
-        """Get nutritional information for a food with quantity"""
+        """Get nutritional information for a food with quantity.
+
+        Strategy:
+          1. Try the local in-memory dataset (zero latency, zero cost).
+          2. If not found, query the external `FoodProviderRegistry`
+             (USDA → Nutritionix → Open Food Facts) with caching.
+          3. If still nothing, return a clear miss payload.
+        """
         food_data = self.find_food(food_name)
-        
+        source = "local"
+
+        if not food_data:
+            external = _lookup_external_sync(food_name)
+            if external is not None:
+                food_data = external["nutrition"]
+                source = external["source"]
+
         if not food_data:
             return {"found": False, "message": f"Food '{food_name}' not found in database"}
         
