@@ -18,6 +18,11 @@ async def lifespan(app: FastAPI):
         await get_registry().close()
     except Exception:
         pass
+    try:
+        from api.routers.market import _agent as _market_agent
+        await _market_agent.close()
+    except Exception:
+        pass
 
 
 app = FastAPI(
