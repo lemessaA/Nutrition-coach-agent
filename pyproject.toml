@@ -9,8 +9,7 @@ description = "AI-powered nutrition coaching platform (FastAPI backend)"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi",
-    "uvicorn[standard]",
+    "fastapi[standard]",
     "langchain",
     "langchain-community",
     "langchain-openai",
@@ -38,3 +37,9 @@ dependencies = [
 
 [tool.setuptools]
 py-modules = []
+
+# FastAPI CLI / FastAPI Cloud: resolve the app from the repo root without
+# passing ``backend/main.py`` on the command line.
+# https://fastapicloud.com/docs/builds-and-deployments/configuring-fastapi/
+[tool.fastapi]
+entrypoint = "app_entry:app"
