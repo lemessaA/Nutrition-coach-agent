@@ -1,5 +1,42 @@
+# Dependencies
 node_modules/
+
+# Build / output
 .next/
-*/__pycache__/
+build/
+dist/
+*.egg-info/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.eggs/
+*.egg
+
+# Environments
 .env
-backend/uploads/
+.env.*.local
+.env.local
+frontend/.env.local
+
+# Local databases (use migrations / seed instead)
+*.db
+
+# Test / tools
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Uploads (runtime; directory kept via .gitkeep)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
