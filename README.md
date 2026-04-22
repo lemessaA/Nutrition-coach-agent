@@ -79,11 +79,11 @@ Dependencies are listed in `pyproject.toml` and `requirements.txt`; the web clie
 
 ## Configuration
 
-Create a **`.env`** file in the **repository root** (same level as `pyproject.toml`). The backend loads it automatically when the working directory is correct; running commands from the `backend/` directory with a root `.env` is a common pattern—adjust paths or symlink if needed.
+Create a **`.env`** file in the **repository root** (same level as `pyproject.toml`). The backend loads it via an explicit path (`backend/config.py`), so it works whether you start Uvicorn from `backend/`, the repo root, or Docker. Copy from [`.env.example`](.env.example) and fill in secrets—**never commit** `.env` (it is gitignored).
 
 | Variable | Purpose |
 |----------|---------|
-| `DATABASE_URL` | SQLAlchemy URL (e.g. `sqlite:///./backend/nutrition_coach.db` or a PostgreSQL URL) |
+| `DATABASE_URL` | Optional. SQLAlchemy URL for **PostgreSQL** or another server DB. If unset, the app defaults to a **SQLite** file under `backend/nutrition_coach.db` (path resolved from `config.py`, not the shell cwd). |
 | `GROQ_API_KEY` or `OPENAI_API_KEY` | LLM access (set at least one, matching `LLM_PROVIDER`) |
 | `LLM_PROVIDER` | e.g. `groq` or `openai` |
 | `LLM_MODEL` | Model id for the chosen provider |
@@ -218,7 +218,7 @@ If you want a **reproducible, self-hosted** stack instead of a managed host (e.g
 2. `docker compose up --build`  
 3. API: [http://localhost:8000](http://localhost:8000) — docs at `/docs`.  
 
-`docker-compose` forces `DATABASE_URL` to the internal `db` service so that a developer’s local SQLite or Postgres DSN in `.env` is not used by mistake. PostgreSQL data lives in the `postgres_data` volume; uploaded listing images in `marketplace_uploads`.  
+Compose reads **`POSTGRES_USER`**, **`POSTGRES_PASSWORD`**, and **`POSTGRES_DB`** from `.env` (see [`env.docker.example`](env.docker.example)). The same values are used to build the API `DATABASE_URL` pointing at the internal `db` service—**no database passwords belong in `docker-compose.yml` or in source code.** PostgreSQL data lives in the `postgres_data` volume; uploaded listing images in `marketplace_uploads`.  
 
 **API image only (no Compose)**
 

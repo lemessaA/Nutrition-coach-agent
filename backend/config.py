@@ -1,15 +1,32 @@
-import os
+from pathlib import Path
 from typing import Optional
-from pydantic_settings import BaseSettings
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+from dotenv import load_dotenv
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Project root = parent of `backend/`
+_ROOT = Path(__file__).resolve().parent.parent
+_ENV_FILE = _ROOT / ".env"
+
+# Load so non-Pydantic code and libraries see the same values as `Settings`
+load_dotenv(_ENV_FILE)
+
+
+def _default_sqlite_url() -> str:
+    p = (Path(__file__).resolve().parent / "nutrition_coach.db").resolve()
+    return f"sqlite:///{p.as_posix()}"
 
 
 class Settings(BaseSettings):
-    # Database postgres
-    database_url: str = "postgresql://postgres:qaws@localhost:5432/nutrition_coach"
+    model_config = SettingsConfigDict(
+        env_file=_ENV_FILE,
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    # Set DATABASE_URL in .env for Postgres. Default is a local SQLite file in backend/.
+    database_url: str = Field(default_factory=_default_sqlite_url)
     
     # LLM Configuration
     openai_api_key: Optional[str] = None
@@ -29,8 +46,8 @@ class Settings(BaseSettings):
     # Example: "http://localhost:3000,http://127.0.0.1:3000,https://your-app.vercel.app"
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     
-    # Security
-    secret_key: str = "your-secret-key-here"
+    # Security (set SECRET_KEY in .env in production)
+    secret_key: str = "dev-insecure-set-secret-key-in-env"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     
@@ -42,9 +59,5 @@ class Settings(BaseSettings):
     edamam_api_key: Optional[str] = None
     spoonacular_api_key: Optional[str] = None
     openfoodfacts_enabled: bool = True
-
-    class Config:
-        env_file = ".env"
-
 
 settings = Settings()
