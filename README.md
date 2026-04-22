@@ -1,522 +1,219 @@
-# Nutrition Coach AI
+# Nutrition Coach Agent
 
-🌟 A comprehensive AI-powered nutrition coaching platform that provides personalized meal planning, food analysis, and health guidance using advanced machine learning.
+A full-stack application that combines a **FastAPI** backend, a **Next.js** (App Router) frontend, and **LangGraph**-driven agents to help users with profiles, chat-based coaching, food analysis, meal planning, and an optional **food marketplace** (buyer and seller roles).
 
-## 🎯 Mission
-Empower users to achieve their health goals through intelligent nutrition coaching, personalized meal plans, and data-driven insights.
-
-## 🚀 Features
-
-### Core Functionality
-- **AI-Powered Chat**: Real-time nutrition coaching with Groq LLM
-- **Personalized Meal Plans**: Custom meal plans based on user profiles and goals
-- **Food Analysis**: Detailed nutritional analysis of foods and meals
-- **Health Profiles**: Comprehensive user health tracking and goal setting
-- **Market Intelligence**: Nutrition market trends and insights
-
-### Technical Features
-- **Backend**: FastAPI with modular agent architecture
-- **Frontend**: Next.js 14 with TypeScript and Tailwind CSS
-- **AI Integration**: Groq LLM for intelligent responses
-- **Database**: SQLite with SQLAlchemy ORM
-- **Vector Store**: FAISS for nutrition knowledge base
-
-## 🏗️ Architecture
-
-### Backend Components
-- **API Layer**: RESTful endpoints with FastAPI
-- **Agent System**: Specialized AI agents for different tasks
-- **LLM Service**: Abstracted AI service supporting multiple providers
-- **Database Layer**: SQLAlchemy models and migrations
-- **RAG System**: Retrieval-augmented generation for nutrition knowledge
-
-### Frontend Components
-- **Pages**: Chat, Profile, Meal Plan, Food Analysis, Market Intelligence
-- **Components**: Reusable UI components with Radix UI
-- **Styling**: Tailwind CSS with custom animations
-- **State Management**: React hooks and context
-
-### AI Agents
-- **Coaching Agent**: Motivational guidance and support
-- **Meal Planner Agent**: Personalized meal plan generation
-- **Food Analyzer Agent**: Nutritional analysis and insights
-- **Nutrition Knowledge Agent**: Evidence-based nutrition information
-- **User Profile Agent**: Health profile management
-- **Market Intelligence Agent**: Market trends and analysis
-
-## 🛠️ Technology Stack
-
-### Backend
-- **Framework**: FastAPI
-- **Language**: Python 3.14
-- **Database**: SQLite with SQLAlchemy
-- **AI/ML**: Groq LLM, LangChain v2
-- **Vector Store**: FAISS
-- **Authentication**: JWT tokens
-
-### Frontend
-- **Framework**: Next.js 14
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: Radix UI
-- **State Management**: React Hooks
-
-### DevOps
-- **Version Control**: Git
-- **Package Management**: npm, pip
-- **Environment Management**: .env files
-- **Code Quality**: ESLint, Prettier
-
-## 📊 Data Flow
-
-1. **User Input** → Frontend UI
-2. **API Request** → Backend FastAPI
-3. **Intent Routing** → AI Agent Selection
-4. **AI Processing** → LLM Service
-5. **Response Generation** → Structured Output
-6. **Database Storage** → User Data Persistence
-7. **Frontend Display** → User Interface
-
-## 🔧 Installation
-
-### Prerequisites
-- Python 3.14+
-- Node.js 18+
-- npm or yarn
-
-### Backend Setup
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python main.py
-```
-
-### Frontend Setup
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-## 🌐 API Endpoints
-
-### Chat
-- `POST /api/v1/chat` - Send message to AI coach
-
-### Profiles
-- `POST /api/v1/profile` - Create user profile
-- `POST /api/v1/profile/{user_id}/health` - Create health profile
-- `GET /api/v1/profile/{user_id}/health` - Get health profile
-
-### Meal Plans
-- `POST /api/v1/meal-plan` - Generate meal plan
-- `GET /api/v1/meal-plan/{plan_id}` - Get meal plan
-
-### Food Analysis
-- `POST /api/v1/analyze-food` - Analyze food nutrition
-
-### Market Intelligence
-- `POST /api/v1/market-intelligence` - Get market trends and insights
-
-## 🎨 UI/UX Features
-
-### Design System
-- **Color Scheme**: Modern gradient effects
-- **Typography**: Clean, readable fonts
-- **Animations**: Smooth transitions and hover effects
-- **Responsive**: Mobile-first design
-
-### User Experience
-- **Intuitive Navigation**: Easy-to-use interface
-- **Real-time Feedback**: Instant AI responses
-- **Progress Tracking**: Visual progress indicators
-- **Personalization**: Tailored user experience
-
-## 🔒 Security Features
-
-- **API Key Management**: Secure LLM API key storage
-- **Input Validation**: Comprehensive input sanitization
-- **Error Handling**: Graceful error responses
-- **Data Privacy**: User data protection
-
-## 📈 Performance
-
-- **Fast Response Times**: Optimized API calls
-- **Efficient Caching**: Vector store for quick retrieval
-- **Scalable Architecture**: Modular design for growth
-- **Database Optimization**: Efficient queries and indexing
-
-## 🧪 Testing
-
-### Backend Tests
-- Unit tests for agents
-- Integration tests for API endpoints
-- Database model tests
-
-### Frontend Tests
-- Component testing
-- API integration testing
-- User interaction testing
-
-## 🚀 Deployment
-
-### Development
-- **Backend**: http://localhost:8000
-- **Frontend**: http://localhost:3000
-- **Database**: SQLite local file
-
-### Production
-- **Backend**: FastAPI with Uvicorn
-- **Frontend**: Next.js static export
-- **Database**: PostgreSQL (recommended)
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 🔮 Future Roadmap
-
-### Phase 2 Features
-- **Mobile App**: React Native application
-- **Advanced Analytics**: Detailed health metrics
-- **Social Features**: Community and sharing
-- **Integration**: Wearable device connectivity
-
-### Phase 3 Features
-- **Machine Learning**: Personalized recommendations
-- **Multi-language Support**: International expansion
-- **Premium Features**: Subscription-based advanced features
-- **API Marketplace**: Third-party integrations
-
-## 📞 Support
-
-- **Documentation**: Comprehensive API docs
-- **Issues**: GitHub issue tracker
-- **Community**: Discord server
-- **Email**: support@nutrition-coach.ai
+Interactive API documentation is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) when the backend is running.
 
 ---
 
-**Built with ❤️ for better health and nutrition**
-- Budget-conscious meal suggestions
+## Table of contents
+
+- [Features](#features)
+- [Architecture](#architecture)
+- [Technology stack](#technology-stack)
+- [Prerequisites](#prerequisites)
+- [Configuration](#configuration)
+- [Local development](#local-development)
+- [API overview](#api-overview)
+- [Project layout](#project-layout)
+- [Testing](#testing)
+- [Security notes](#security-notes)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## Features
+
+| Area | Description |
+|------|-------------|
+| **Coaching chat** | Natural-language Q&A routed through a LangGraph workflow to specialized agents (coaching, meal planning, food analysis, nutrition knowledge). |
+| **User profiles** | User accounts, health profile fields, and optional `buyer` / `seller` / `both` roles for the marketplace. |
+| **Meal plans** | Generate and store meal plans; includes a data-backed synthesizer as a reliable fallback. |
+| **Food analysis** | Parse meals and food descriptions for estimated nutrition; optional history and summaries per user. |
+| **External food data** | Search, barcode, and natural-language queries via a pluggable provider layer (e.g. Open Food Facts, USDA, Nutritionix when keys are configured). |
+| **Marketplace** | Sellers create listings with nutrition and pricing; buyers search by nutrients and place orders. Listing images can be **uploaded** from the client and served from `/uploads` on the API host. |
+| **Frontend** | Responsive UI, sign-in and profile flows, light/dark theme, marketplace browse/sell/orders pages. |
+
+---
 
 ## Architecture
 
-### Backend (FastAPI + Python)
-- **FastAPI**: RESTful API framework
-- **LangChain + LangGraph**: Multi-agent orchestration and workflow management
-- **SQLAlchemy**: Database ORM with SQLite/PostgreSQL support
-- **Vector Database**: FAISS/Chroma for nutrition knowledge retrieval
-- **Multiple LLM Support**: OpenAI, Groq, and other compatible models
+- **Client** (Next.js) calls REST endpoints under `/api/v1/`.
+- **Server** (FastAPI) authenticates and validates input with Pydantic, persists to SQLAlchemy models, and serves static uploads for marketplace images.
+- **Orchestration** uses LangGraph: user messages are classified and dispatched to the appropriate agent node.
+- **LLM** access is centralized (e.g. OpenAI or Groq) via a shared service; optional RAG/vector storage supports nutrition knowledge where configured.
 
-### Frontend (Next.js + TypeScript)
-- **Next.js 14**: Modern React framework with App Router
-- **Tailwind CSS**: Utility-first styling with shadcn/ui components
-- **Responsive Design**: Mobile-first interface
-- **Real-time Chat**: Interactive AI coaching interface
-
-### Agent Workflow
-```
-User Question → Intent Router → Relevant Agent → Response
+```text
+Browser  →  Next.js (localhost:3000)
+                ↓ HTTP
+         FastAPI (localhost:8000)  →  SQLAlchemy (SQLite or PostgreSQL)
+                ↓
+         LangGraph + agents  →  LLM / RAG / external food APIs
 ```
 
-The system uses LangGraph to coordinate between specialized agents based on user intent.
+---
 
-## Quick Start
+## Technology stack
 
-### Prerequisites
-- Python 3.8+
-- Node.js 18+
-- OpenAI or Groq API key
+| Layer | Technologies |
+|-------|----------------|
+| **Backend** | Python 3.11+, FastAPI, Uvicorn, SQLAlchemy, Pydantic Settings, LangChain, LangGraph |
+| **Frontend** | Next.js 14, React 18, TypeScript, Tailwind CSS, Radix UI |
+| **Data** | SQLite or PostgreSQL (configurable `DATABASE_URL`) |
+| **Optional** | FAISS/Chroma, external nutrition APIs (USDA, Nutritionix, etc.) |
 
-### Backend Setup
+Dependencies are listed in `pyproject.toml` and `requirements.txt`; the web client uses `frontend/package.json`.
 
-1. **Clone and navigate to project:**
-```bash
-git clone <repository-url>
-cd Nutrition-coach-agent
-```
+---
 
-2. **Create virtual environment:**
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+## Prerequisites
 
-3. **Install dependencies:**
-```bash
-pip install -r requirements.txt
-```
+- **Python** 3.11 or newer  
+- **Node.js** 18 or newer and npm  
+- **API keys** for at least one LLM provider (OpenAI and/or Groq), plus any optional food APIs you want to enable  
 
-4. **Set up environment variables:**
-```bash
-cp .env.example .env
-# Edit .env with your API keys
-```
-
-Required environment variables:
-```env
-OPENAI_API_KEY=your_openai_key
-# or
-GROQ_API_KEY=your_groq_key
-
-DATABASE_URL=sqlite:///./nutrition_coach.db
-LLM_PROVIDER=openai  # openai or groq
-LLM_MODEL=gpt-3.5-turbo
-```
-
-5. **Initialize database:**
-```bash
-python -c "from backend.database.connection import init_db; init_db()"
-```
-
-6. **Start the backend server:**
-```bash
-cd backend
-python main.py
-```
-
-The API will be available at `http://localhost:8000`
-
-### Frontend Setup
-
-1. **Install dependencies:**
-```bash
-cd frontend
-npm install
-```
-
-2. **Set environment variables:**
-```bash
-cp .env.example .env.local
-# Edit .env.local
-```
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
-
-3. **Start the development server:**
-```bash
-npm run dev
-```
-
-The frontend will be available at `http://localhost:3000`
-
-## API Endpoints
-
-### Chat & Coaching
-- `POST /api/v1/chat` - Chat with AI nutrition coach
-- `GET /api/v1/chat/history/{user_id}` - Get chat history
-- `GET /api/v1/chat/sessions/{user_id}` - Get chat sessions
-
-### Profile Management
-- `POST /api/v1/profile` - Create user account
-- `POST /api/v1/profile/{user_id}/health` - Create health profile
-- `PUT /api/v1/profile/{user_id}/health` - Update health profile
-- `GET /api/v1/profile/{user_id}/health` - Get health profile
-- `GET /api/v1/profile/{user_id}/summary` - Get profile summary
-
-### Meal Planning
-- `POST /api/v1/meal-plan` - Generate meal plan
-- `GET /api/v1/meal-plan/{user_id}` - Get meal plans
-- `POST /api/v1/meal-plan/{user_id}/generate-weekly` - Generate weekly plan
-- `GET /api/v1/meal-plan/{user_id}/suggestions` - Get meal suggestions
-
-### Food Analysis
-- `POST /api/v1/analyze-food` - Analyze food nutrition
-- `POST /api/v1/analyze-meal` - Analyze complete meal
-- `POST /api/v1/compare-foods` - Compare multiple foods
-- `GET /api/v1/analyze-food/{user_id}/history` - Get analysis history
-
-## Usage Examples
-
-### Chat with the AI Coach
-```bash
-curl -X POST "http://localhost:8000/api/v1/chat" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "Create a meal plan for weight loss",
-    "session_id": "user123"
-  }'
-```
-
-### Create User Profile
-```bash
-curl -X POST "http://localhost:8000/api/v1/profile/1/health" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "age": 30,
-    "weight": 70,
-    "height": 175,
-    "gender": "male",
-    "activity_level": "moderately_active",
-    "goal": "lose_weight"
-  }'
-```
-
-### Analyze Food
-```bash
-curl -X POST "http://localhost:8000/api/v1/analyze-food" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "food_input": "chicken breast with rice and vegetables",
-    "user_id": 1
-  }'
-```
-
-## Agent Capabilities
-
-### User Profile Agent
-- Calculates BMR using Mifflin-St Jeor equation
-- Determines TDEE based on activity level
-- Sets personalized macro targets
-- Validates health information
-
-### Meal Planner Agent
-- Generates daily/weekly meal plans
-- Creates shopping lists
-- Considers dietary restrictions and preferences
-- Provides recipes with nutritional information
-
-### Nutrition Knowledge Agent
-- RAG-powered Q&A system
-- Evidence-based nutrition information
-- Personalized answers based on user profile
-- Source citations and confidence scores
-
-### Food Analyzer Agent
-- Parses complex meal descriptions
-- Calculates calories and macronutrients
-- Provides nutritional insights
-- Rates meal quality
-
-### Coaching Agent
-- Motivational support and encouragement
-- Habit-building strategies
-- Progress celebration
-- Obstacle overcoming guidance
-
-### Market Intelligence Agent
-- Budget-friendly food options
-- Seasonal produce recommendations
-- Price comparisons
-- Market trend analysis
-
-## Development
-
-### Adding New Agents
-1. Create agent class in `backend/agents/`
-2. Inherit from `BaseAgent`
-3. Implement `process()` and `get_system_prompt()` methods
-4. Add to agent mapping in `IntentRouter`
-5. Update workflow if needed
-
-### Extending Frontend
-- Components in `frontend/components/`
-- Pages in `frontend/app/`
-- API services in `frontend/services/`
-- Types in `frontend/types/`
-
-### Database Schema
-- Models in `backend/database/models.py`
-- Schemas in `backend/schemas/`
-- Migration with Alembic
+---
 
 ## Configuration
 
-### LLM Settings
-```python
-# backend/config.py
-LLM_PROVIDER = "openai"  # or "groq"
-LLM_MODEL = "gpt-3.5-turbo"
+Create a **`.env`** file in the **repository root** (same level as `pyproject.toml`). The backend loads it automatically when the working directory is correct; running commands from the `backend/` directory with a root `.env` is a common pattern—adjust paths or symlink if needed.
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | SQLAlchemy URL (e.g. `sqlite:///./backend/nutrition_coach.db` or a PostgreSQL URL) |
+| `GROQ_API_KEY` or `OPENAI_API_KEY` | LLM access (set at least one, matching `LLM_PROVIDER`) |
+| `LLM_PROVIDER` | e.g. `groq` or `openai` |
+| `LLM_MODEL` | Model id for the chosen provider |
+| `USDA_API_KEY` | Optional: USDA FoodData Central |
+| `NUTRITIONIX_APP_ID` / `NUTRITIONIX_API_KEY` | Optional: Nutritionix natural nutrients |
+| `SECRET_KEY` | Change from default for any deployment that issues tokens |
+
+**Frontend:** copy `frontend/.env.example` to `frontend/.env.local` and set:
+
+```env
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
 ```
 
-### Database
-```python
-DATABASE_URL = "sqlite:///./nutrition_coach.db"
-# or PostgreSQL: "postgresql://user:pass@localhost/dbname"
+Do not commit `.env` or `frontend/.env.local`; they are listed in `.gitignore`.
+
+---
+
+## Local development
+
+### 1. Backend
+
+From the **repository root**:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+# Optional: pip install -e .   # editable install from pyproject.toml
 ```
 
-### Vector Database
-```python
-VECTOR_DB_TYPE = "faiss"  # or "chroma"
-VECTOR_DB_PATH = "./data/vector_db"
+From the **`backend/`** directory (so imports like `config` resolve as in this project):
+
+```bash
+cd backend
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+If you use the FastAPI CLI (same `backend` directory):
+
+```bash
+cd backend
+fastapi dev main.py
+```
+
+The app exposes **GET `/health`** for a quick check.
+
+### 2. Frontend
+
+```bash
+cd frontend
+cp .env.example .env.local   # if you do not already have .env.local
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). Ensure `NEXT_PUBLIC_API_URL` points at the same host and port as the API (default `http://127.0.0.1:8000`).
+
+The database is initialized on application startup (FastAPI lifespan).
+
+---
+
+## API overview
+
+All JSON routes are prefixed with **`/api/v1`**. The complete, executable contract is in the OpenAPI UI at `/docs`.
+
+| Tag | Description |
+|-----|-------------|
+| **Chat** | `POST /chat`, history and sessions |
+| **Profile** | User CRUD, health profile, by-email lookup, role updates |
+| **Meal plan** | Create/list/get/delete plans, suggestions, weekly generation |
+| **Analyze food** | Analyze food, meal, compare, history, summaries |
+| **Foods** | `GET /foods/search`, `GET /foods/barcode/{barcode}`, `POST /foods/natural` |
+| **Marketplace** | Listings, orders, status updates, `POST /marketplace/uploads` for images |
+| **Static** | `GET /uploads/{filename}` for uploaded listing images (mounted on the API app) |
+
+Root routes: `GET /`, `GET /health`.
+
+**Example (chat):**
+
+```bash
+curl -s -X POST "http://127.0.0.1:8000/api/v1/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is a good high-protein breakfast?", "user_id": 1, "session_id": "demo"}'
+```
+
+`user_id` and `session_id` are optional. See the `ChatRequest` schema in `/docs`.
+
+---
+
+## Project layout
+
+```text
+backend/           # FastAPI app, agents, graph, database, providers
+frontend/          # Next.js app (app router, components, services)
+data/              # Local datasets and assets used by tools (where applicable)
+tests/             # Python tests
+docker/            # Container-related files (optional)
+pyproject.toml     # Project metadata and Python dependencies
+requirements.txt   # Pip-installable list mirroring the backend stack
+```
+
+---
 
 ## Testing
 
-### Backend Tests
 ```bash
-cd backend
-pytest tests/
+# From repository root, with the virtual environment activated
+pytest tests/ -q
 ```
 
-### Frontend Tests
-```bash
-cd frontend
-npm test
-```
+Add or expand tests as you change agents and routes.
 
-### Integration Testing
-```bash
-# Start both backend and frontend
-npm run test:e2e
-```
+---
 
-## Deployment
+## Security notes
 
-### Backend (Docker)
-```bash
-docker build -t nutrition-coach-backend .
-docker run -p 8000:8000 nutrition-coach-backend
-```
+- **Never** commit real API keys, database passwords, or `frontend/.env.local`.
+- Rotate any key that was ever exposed in version control.
+- For production, use a strong `SECRET_KEY`, HTTPS, a managed database, and environment-specific CORS (the default CORS list in `main.py` is for local development).
 
-### Frontend (Vercel/Netlify)
-Deploy the `frontend` directory to your preferred platform.
-
-### Production Considerations
-- Use PostgreSQL for production database
-- Set up proper API rate limiting
-- Configure HTTPS
-- Monitor LLM usage and costs
-- Set up logging and monitoring
+---
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+1. Open an issue to describe the change or bug.  
+2. Fork the repository and create a branch from `main`.  
+3. Keep changes focused; follow existing code style.  
+4. Run tests and linters before submitting a pull request.  
+5. Reference related issues in the PR description.  
+
+---
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For issues and questions:
-- Create an issue on GitHub
-- Check the documentation
-- Review the API endpoints
-
-## Roadmap
-
-- [ ] Mobile app development
-- [ ] Integration with fitness trackers
-- [ ] Advanced analytics dashboard
-- [ ] Multi-language support
-- [ ] Recipe image generation
-- [ ] Social features and community
+This repository does not ship a `LICENSE` file in-tree. If you open-source the project, add a license file (for example MIT or Apache-2.0) and list it here; otherwise, all rights are reserved by the copyright holder(s).
