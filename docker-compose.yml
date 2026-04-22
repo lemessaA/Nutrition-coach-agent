@@ -1,0 +1,48 @@
+# Nutrition Coach API + PostgreSQL for local or server deployment.
+#
+# 1. Copy env:  cp env.docker.example .env  (then edit secrets)
+# 2. Build and start:  docker compose up --build
+# 3. API: http://localhost:8000  |  Docs: /docs
+#
+# The API service sets DATABASE_URL to the `db` container. Add GROQ_API_KEY / OPENAI_API_KEY
+# and CORS_ORIGINS in `.env`. For marketplace image uploads, data persists in the `uploads` volume.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: nutrition
+      POSTGRES_PASSWORD: nutrition
+      POSTGRES_DB: nutrition_coach
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nutrition -d nutrition_coach"]
+      interval: 5s
+      timeout: 5s
+      retries: 8
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${API_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      # Use the compose network; overrides any local sqlite URL in .env
+      DATABASE_URL: postgresql://nutrition:nutrition@db:5432/nutrition_coach
+      API_HOST: 0.0.0.0
+      API_PORT: "8000"
+    volumes:
+      - marketplace_uploads:/app/backend/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  marketplace_uploads:
