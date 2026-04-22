@@ -216,4 +216,4 @@ Add or expand tests as you change agents and routes.
 
 ## License
 
-This repository does not ship a `LICENSE` file in-tree. If you open-source the project, add a license file (for example MIT or Apache-2.0) and list it here; otherwise, all rights are reserved by the copyright holder(s).
+This project is released under the **MIT License**. See the [`LICENSE`](LICENSE) file in the repository root for the full text.
