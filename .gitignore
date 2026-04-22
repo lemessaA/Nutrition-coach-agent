@@ -5,7 +5,7 @@ node_modules/
 .next/
 build/
 dist/
-*.egg-info/
+**/*.egg-info/
 *.tsbuildinfo
 
 # Python
@@ -16,6 +16,8 @@ __pycache__/
 .Python
 .eggs/
 *.egg
+.venv/
+venv/
 
 # Environments
 .env
