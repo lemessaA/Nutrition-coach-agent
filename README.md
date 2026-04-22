@@ -88,6 +88,7 @@ Create a **`.env`** file in the **repository root** (same level as `pyproject.to
 | `USDA_API_KEY` | Optional: USDA FoodData Central |
 | `NUTRITIONIX_APP_ID` / `NUTRITIONIX_API_KEY` | Optional: Nutritionix natural nutrients |
 | `SECRET_KEY` | Change from default for any deployment that issues tokens |
+| `CORS_ORIGINS` | Comma-separated browser origins allowed to call the API (default: `http://localhost:3000,http://127.0.0.1:3000`). Add your LAN or production URL (e.g. `https://your-app.example.com`) when you deploy. |
 
 **Frontend:** copy `frontend/.env.example` to `frontend/.env.local` and set:
 
