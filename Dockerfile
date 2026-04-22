@@ -22,9 +22,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app_entry.py .
 COPY backend/ ./backend/
-COPY data/ ./data/
 
-RUN mkdir -p /app/backend/uploads
+# RAG / vector paths (see config); create if your repo has no checked-in `data/` yet
+RUN mkdir -p /app/data /app/backend/uploads
 
 EXPOSE 8000
 
