@@ -11,8 +11,8 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: nutrition
-      POSTGRES_PASSWORD: nutrition
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: qaws
       POSTGRES_DB: nutrition_coach
     volumes:
       - postgres_data:/var/lib/postgresql/data

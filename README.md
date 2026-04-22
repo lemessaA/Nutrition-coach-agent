@@ -15,6 +15,7 @@ Interactive API documentation is available at [http://127.0.0.1:8000/docs](http:
 - [Configuration](#configuration)
 - [Local development](#local-development)
 - [FastAPI Cloud deployment](#fastapi-cloud-deployment)
+- [Docker deployment](#docker-deployment)
 - [API overview](#api-overview)
 - [Project layout](#project-layout)
 - [Testing](#testing)
@@ -192,6 +193,52 @@ If `fastapi` is not found, install the CLI with: `pip install "fastapi[standard]
 
 ---
 
+## Docker deployment
+
+If you want a **reproducible, self-hosted** stack instead of a managed host (e.g. FastAPI Cloud), use Docker. This repo includes:
+
+| File | Purpose |
+|------|---------|
+| [`Dockerfile`](Dockerfile) | Builds the API from `app_entry:app` and `backend/` (Python 3.12). |
+| [`docker-compose.yml`](docker-compose.yml) | Runs **PostgreSQL 16** and the **API** on the same user-defined network, with a volume for marketplace **uploads**. |
+| [`env.docker.example`](env.docker.example) | Copy to `.env` in the project root; put API keys and CORS there (do not commit). |
+| [`.dockerignore`](.dockerignore) | Keeps the image small (excludes `frontend/`, `node_modules/`, venv, etc.). |
+
+**Why Docker vs FastAPI Cloud**
+
+| | Docker (Compose) | FastAPI Cloud |
+|---|------------------|----------------|
+| **You operate** | Servers, images, optional reverse proxy, DB backups | The platform (scaling, HTTPS, build pipeline) |
+| **Database** | You add Postgres in Compose or use an external DSN | Set `DATABASE_URL` in the cloud dashboard or CLI |
+| **Typical use** | VPS, on-prem, air-gapped, full control | Fastest “run `fastapi deploy`” path |
+
+**Quick start**
+
+1. `cp env.docker.example .env` and set at least `GROQ_API_KEY` (or `OPENAI_API_KEY`) and `CORS_ORIGINS` (include your real front-end origin in production).  
+2. `docker compose up --build`  
+3. API: [http://localhost:8000](http://localhost:8000) — docs at `/docs`.  
+
+`docker-compose` forces `DATABASE_URL` to the internal `db` service so that a developer’s local SQLite or Postgres DSN in `.env` is not used by mistake. PostgreSQL data lives in the `postgres_data` volume; uploaded listing images in `marketplace_uploads`.  
+
+**API image only (no Compose)**
+
+```bash
+docker build -t nutrition-coach-api .
+docker run --rm -p 8000:8000 --env-file .env nutrition-coach-api
+```
+
+Set `DATABASE_URL` to a reachable database (e.g. managed Postgres) when not using the Compose `db` service.
+
+**RAG / `data/`**
+
+If you store vector or CSV data under `data/`, add a volume in `docker-compose.yml` (e.g. `./data:/app/data`) or extend the `Dockerfile` to `COPY data/` when that directory exists in your branch.
+
+**Front end**
+
+The Next.js app is not in this image. Run it on the host with `cd frontend && npm run dev`, deploy it to Vercel, or add a second `Dockerfile` under `frontend/` if you need a containerized UI.
+
+---
+
 ## API overview
 
 All JSON routes are prefixed with **`/api/v1`**. The complete, executable contract is in the OpenAPI UI at `/docs`.
@@ -223,12 +270,14 @@ curl -s -X POST "http://127.0.0.1:8000/api/v1/chat" \
 ## Project layout
 
 ```text
-app_entry.py      # ASGI entry for ``fastapi dev`` / FastAPI Cloud (imports backend app)
+app_entry.py      # ASGI entry for ``fastapi dev`` / FastAPI Cloud / Docker (imports backend app)
+Dockerfile         # API container image
+docker-compose.yml # API + PostgreSQL (optional local stack)
+env.docker.example # Template for variables used with Compose / ``docker run``
 backend/          # FastAPI app, agents, graph, database, providers
 frontend/         # Next.js app (app router, components, services)
 data/             # Local datasets and assets used by tools (where applicable)
 tests/            # Python tests
-docker/           # Container-related files (optional)
 pyproject.toml    # Project metadata, dependencies, and [tool.fastapi] entrypoint
 requirements.txt  # Pip-installable list mirroring the backend stack
 ```
