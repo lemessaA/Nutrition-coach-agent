@@ -14,6 +14,7 @@ Interactive API documentation is available at [http://127.0.0.1:8000/docs](http:
 - [Prerequisites](#prerequisites)
 - [Configuration](#configuration)
 - [Local development](#local-development)
+- [FastAPI Cloud deployment](#fastapi-cloud-deployment)
 - [API overview](#api-overview)
 - [Project layout](#project-layout)
 - [Testing](#testing)
@@ -142,6 +143,53 @@ Open [http://localhost:3000](http://localhost:3000). Ensure `NEXT_PUBLIC_API_URL
 
 The database is initialized on application startup (FastAPI lifespan).
 
+### Run from the repository root (same entry as FastAPI Cloud)
+
+The ASGI app is also exposed as **`app_entry:app`**, with `sys.path` adjusted so the code in `backend/` keeps working. This matches the `[tool.fastapi]` entrypoint in `pyproject.toml`:
+
+```bash
+# From the repository root (not only from backend/)
+fastapi dev
+# or: uvicorn app_entry:app --reload --host 0.0.0.0 --port 8000
+```
+
+If `fastapi` is not found, install the CLI with: `pip install "fastapi[standard]"`.
+
+---
+
+## FastAPI Cloud deployment
+
+[FastAPI Cloud](https://fastapicloud.com/) runs your FastAPI app with `fastapi deploy` and the [FastAPI Cloud CLI](https://fastapicloud.com/docs/fastapi-cloud-cli/deploy/) (bundled with `fastapi[standard]`). This repository is set up to deploy **from the repository root** so you do not need a separate `main.py` at the top level: see [`app_entry.py`](app_entry.py) and `[tool.fastapi]` in [`pyproject.toml`](pyproject.toml).
+
+1. **Install** the CLI (in a venv is recommended):
+   ```bash
+   pip install "fastapi[standard]"
+   ```
+2. **Log in** (browser flow on first use):
+   ```bash
+   fastapi login
+   ```
+3. **Set environment variables** in the cloud (Postgres and secrets are recommended for anything beyond a quick test). Examples:
+   ```bash
+   fastapi cloud env set DATABASE_URL "postgresql://user:pass@host:5432/dbname"
+   fastapi cloud env set --secret GROQ_API_KEY "your-key"
+   fastapi cloud env set CORS_ORIGINS "https://your-frontend.example.com,https://your-app.vercel.app"
+   fastapi cloud env set SECRET_KEY "a-long-random-string"
+   ```
+   Use [`fastapi cloud env set`](https://fastapicloud.com/docs/fastapi-cloud-cli/) for the full set of subcommands, or set variables in the [dashboard](https://dashboard.fastapicloud.com/) under your app.
+4. **Deploy** from the **repository root**:
+   ```bash
+   fastapi deploy
+   ```
+   A `.fastapicloud` directory is created to link this project to your cloud app. Subsequent updates are a single `fastapi deploy`.
+
+**Notes:**
+
+- The default `DATABASE_URL` in `config.py` is for local development. **Use a managed PostgreSQL URL** in cloud; SQLite is usually unsuitable for serverless or multi-instance hosting.
+- Set **`CORS_ORIGINS`** to your real front-end origin(s) (for example a Vercel URL); the app uses `allow_credentials=True`, so you cannot rely on a wildcard.
+- If your account is on a **wait list**, use the [FastAPI Cloud](https://fastapicloud.com/) site to request access, then repeat the steps above.
+- [Official docs: existing project](https://fastapicloud.com/docs/getting-started/existing-project/) and [configuring the entrypoint](https://fastapicloud.com/docs/builds-and-deployments/configuring-fastapi/).
+
 ---
 
 ## API overview
@@ -175,13 +223,14 @@ curl -s -X POST "http://127.0.0.1:8000/api/v1/chat" \
 ## Project layout
 
 ```text
-backend/           # FastAPI app, agents, graph, database, providers
-frontend/          # Next.js app (app router, components, services)
-data/              # Local datasets and assets used by tools (where applicable)
-tests/             # Python tests
-docker/            # Container-related files (optional)
-pyproject.toml     # Project metadata and Python dependencies
-requirements.txt   # Pip-installable list mirroring the backend stack
+app_entry.py      # ASGI entry for ``fastapi dev`` / FastAPI Cloud (imports backend app)
+backend/          # FastAPI app, agents, graph, database, providers
+frontend/         # Next.js app (app router, components, services)
+data/             # Local datasets and assets used by tools (where applicable)
+tests/            # Python tests
+docker/           # Container-related files (optional)
+pyproject.toml    # Project metadata, dependencies, and [tool.fastapi] entrypoint
+requirements.txt  # Pip-installable list mirroring the backend stack
 ```
 
 ---
@@ -201,7 +250,7 @@ Add or expand tests as you change agents and routes.
 
 - **Never** commit real API keys, database passwords, or `frontend/.env.local`.
 - Rotate any key that was ever exposed in version control.
-- For production, use a strong `SECRET_KEY`, HTTPS, a managed database, and environment-specific CORS (the default CORS list in `main.py` is for local development).
+- For production, use a strong `SECRET_KEY`, HTTPS, a managed database, and set `CORS_ORIGINS` to your deployed front-end (defaults are for local development only).
 
 ---
 
