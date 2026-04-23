@@ -61,18 +61,19 @@ Browser  →  Next.js (localhost:3000)
 
 | Layer | Technologies |
 |-------|----------------|
-| **Backend** | Python 3.11+, FastAPI, Uvicorn, SQLAlchemy, Pydantic Settings, LangChain, LangGraph |
+| **Backend** | Python 3.11+, [uv](https://docs.astral.sh/uv/) (`uv pip` for packages), FastAPI, Uvicorn, SQLAlchemy, Pydantic Settings, LangChain, LangGraph |
 | **Frontend** | Next.js 14, React 18, TypeScript, Tailwind CSS, Radix UI |
 | **Data** | SQLite or PostgreSQL (configurable `DATABASE_URL`) |
 | **Optional** | FAISS/Chroma, external nutrition APIs (USDA, Nutritionix, etc.) |
 
-Dependencies are listed in `pyproject.toml` and `requirements.txt`; the web client uses `frontend/package.json`.
+Backend Python dependencies are listed in `backend/pyproject.toml` and the repo-root `requirements.txt` — install them with **`uv pip`** (see [Local development](#local-development)). The web client uses `frontend/package.json`.
 
 ---
 
 ## Prerequisites
 
 - **Python** 3.11 or newer  
+- **[uv](https://docs.astral.sh/uv/)** for Python packages (`uv pip`). Install: see [Getting started](https://docs.astral.sh/uv/getting-started/installation/) (e.g. `curl -LsSf https://astral.sh/uv/install.sh | sh` on Linux/macOS).  
 - **Node.js** 18 or newer and npm  
 - **API keys** for at least one LLM provider (OpenAI and/or Groq), plus any optional food APIs you want to enable  
 
@@ -80,7 +81,7 @@ Dependencies are listed in `pyproject.toml` and `requirements.txt`; the web clie
 
 ## Configuration
 
-Create a **`.env`** file in the **repository root** (same level as `pyproject.toml`). The backend loads it via an explicit path (`backend/config.py`), so it works whether you start Uvicorn from `backend/` or the repo root. Copy from [`.env.example`](.env.example) and fill in secrets—**never commit** `.env` (it is gitignored).
+Create a **`.env`** file in the **repository root** (same level as `requirements.txt`). The backend loads it via an explicit path (`backend/config.py`), so it works whether you start Uvicorn from `backend/` or the repo root. Copy from [`.env.example`](.env.example) and fill in secrets—**never commit** `.env` (it is gitignored).
 
 | Variable | Purpose |
 |----------|---------|
@@ -107,13 +108,13 @@ Do not commit `.env` or `frontend/.env.local`; they are listed in `.gitignore`.
 
 ### 1. Backend
 
-From the **repository root**:
+Use **[uv](https://docs.astral.sh/uv/)** and **`uv pip`** (not plain `pip`) for dependencies. From the **repository root**:
 
 ```bash
-python -m venv .venv
+uv venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-# Optional: pip install -e .   # editable install from pyproject.toml
+uv pip install -r requirements.txt
+# Optional: uv pip install -e backend/   # editable install using backend/pyproject.toml
 ```
 
 From the **`backend/`** directory (so imports like `config` resolve as in this project):
@@ -147,7 +148,7 @@ The database is initialized on application startup (FastAPI lifespan).
 
 ### Run from the repository root (same entry as FastAPI Cloud)
 
-The ASGI app is also exposed as **`app_entry:app`**, with `sys.path` adjusted so the code in `backend/` keeps working. This matches the `[tool.fastapi]` entrypoint in `pyproject.toml`:
+The ASGI app is also exposed as **`app_entry:app`**, with `sys.path` adjusted so the code in `backend/` keeps working. This matches the `[tool.fastapi]` entrypoint in `backend/pyproject.toml`:
 
 ```bash
 # From the repository root (not only from backend/)
@@ -155,13 +156,13 @@ fastapi dev
 # or: uvicorn app_entry:app --reload --host 0.0.0.0 --port 8000
 ```
 
-If `fastapi` is not found, install the CLI with: `pip install "fastapi[standard]"`.
+If `fastapi` is not found, install the CLI with: `uv pip install "fastapi[standard]"` (with your venv activated).
 
 ---
 
 ## Backend on Render
 
-The API runs on [Render](https://render.com) as a **Web Service** with the **Python** runtime. The repo includes [`render.yaml`](render.yaml) ([Blueprint spec](https://render.com/docs/blueprint-spec)): `pip install -r requirements.txt` and `uvicorn app_entry:app` on `$PORT`.
+The API runs on [Render](https://render.com) as a **Web Service** with the **Python** runtime. The repo includes [`render.yaml`](render.yaml) ([Blueprint spec](https://render.com/docs/blueprint-spec)). The build runs **`uv pip install --system -r requirements.txt`** (after installing `uv` with `pip`) so the same lockfile as local dev is used; the start command is `uvicorn app_entry:app` on `$PORT`.
 
 - **URL:** `https://<service-name>.onrender.com` (or a custom domain). **No trailing slash.**
 - **Health check:** path **`/health`**.
@@ -222,7 +223,7 @@ The **Next.js app** in [`frontend/`](frontend/) is intended to run on [Vercel](h
 
 1. **Install** the CLI (in a venv is recommended):
    ```bash
-   pip install "fastapi[standard]"
+   uv pip install "fastapi[standard]"
    ```
 2. **Log in** (browser flow on first use):
    ```bash
@@ -284,12 +285,11 @@ curl -s -X POST "http://127.0.0.1:8000/api/v1/chat" \
 ```text
 app_entry.py      # ASGI entry for ``fastapi dev`` / FastAPI Cloud / Render (imports backend app)
 render.yaml        # Optional Render Blueprint (Python) for the API
-backend/          # FastAPI app, agents, graph, database, providers
+backend/          # FastAPI app, agents, graph, database, providers; ``backend/pyproject.toml`` metadata
 frontend/         # Next.js app (Vercel: use this folder as root; includes vercel.json)
 data/             # Local datasets and assets used by tools (where applicable)
 tests/            # Python tests
-pyproject.toml    # Project metadata, dependencies, and [tool.fastapi] entrypoint
-requirements.txt  # Pip-installable list mirroring the backend stack
+requirements.txt  # Python deps (install: ``uv pip install -r requirements.txt``)
 ```
 
 ---
