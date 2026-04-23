@@ -14,6 +14,7 @@ Interactive API documentation is available at [http://127.0.0.1:8000/docs](http:
 - [Prerequisites](#prerequisites)
 - [Configuration](#configuration)
 - [Local development](#local-development)
+- [Deploy frontend (Vercel)](#deploy-frontend-vercel)
 - [FastAPI Cloud deployment](#fastapi-cloud-deployment)
 - [Docker deployment](#docker-deployment)
 - [API overview](#api-overview)
@@ -155,6 +156,27 @@ fastapi dev
 ```
 
 If `fastapi` is not found, install the CLI with: `pip install "fastapi[standard]"`.
+
+---
+
+## Deploy frontend (Vercel)
+
+The **Next.js app** in [`frontend/`](frontend/) is intended to run on [Vercel](https://vercel.com) (or any Node host). The **FastAPI** backend must be deployed separately and reachable over **HTTPS** in production.
+
+1. **Deploy the API** (Docker, a VPS, FastAPI Cloud, etc.) and note its public origin with **no trailing slash**, e.g. `https://api.yourdomain.com`.
+2. **CORS** on the API: set `CORS_ORIGINS` in the backend environment to your Vercel URL(s), for example:
+   - `https://your-app.vercel.app`
+   - Your custom domain: `https://app.yourdomain.com`
+   - For **preview deployments**, add each preview URL you use, or a pattern your platform supports—FastAPI accepts a **comma-separated list** of exact origins.
+3. In the [Vercel dashboard](https://vercel.com/dashboard): **Add New… → Project** → import this Git repository.
+4. **Root Directory**: set to **`frontend`** (required for this monorepo). Vercel will detect Next.js using [`frontend/vercel.json`](frontend/vercel.json).
+5. **Environment variables** (Production, and optionally Preview):
+   - `NEXT_PUBLIC_API_URL` = your API origin, e.g. `https://api.yourdomain.com` (same value the browser will use; **no** trailing slash).
+6. **Deploy**, then open the generated `.vercel.app` URL. Redeploy after changing `NEXT_PUBLIC_API_URL` so the client bundle picks it up.
+
+**CLI (optional):** from the repo, `cd frontend && npx vercel` and link the project; set the same env vars when prompted or in the dashboard.
+
+[`frontend/lib/public-api-url.ts`](frontend/lib/public-api-url.ts) centralizes the API base URL. [`frontend/next.config.js`](frontend/next.config.js) allows `next/image` to load listing assets from `NEXT_PUBLIC_API_URL` under `/uploads/`.
 
 ---
 
