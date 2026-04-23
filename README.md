@@ -14,6 +14,7 @@ Interactive API documentation is available at [http://127.0.0.1:8000/docs](http:
 - [Prerequisites](#prerequisites)
 - [Configuration](#configuration)
 - [Local development](#local-development)
+- [Backend on Render](#backend-on-render)
 - [Deploy frontend (Vercel)](#deploy-frontend-vercel)
 - [FastAPI Cloud deployment](#fastapi-cloud-deployment)
 - [Docker deployment](#docker-deployment)
@@ -159,11 +160,34 @@ If `fastapi` is not found, install the CLI with: `pip install "fastapi[standard]
 
 ---
 
+## Backend on Render
+
+The API runs well on [Render](https://render.com) as a **Web Service** (Docker) using the root [`Dockerfile`](Dockerfile). A starter blueprint is in [`render.yaml`](render.yaml) (new Blueprint in Render, or add a service and connect the same repo with **Docker** build).
+
+- **URL:** Your public base URL looks like `https://<service-name>.onrender.com` (or a custom domain). **No trailing slash.**
+- **Port:** Render sets the `PORT` environment variable. The image listens with Uvicorn on `${PORT}` (default `8000` for local Docker).
+- **Health check:** In Render, set the health check path to **`/health`** (returned by FastAPI in [`backend/main.py`](backend/main.py)).
+- **Database:** Add a [Render PostgreSQL](https://render.com/docs/databases) instance (or any external URL) and set **`DATABASE_URL`** in the service **Environment** tab. Do not rely on the default SQLite file for production.
+- **Secrets & CORS in Render (Environment):**
+
+  | Key | Example value |
+  |-----|-----------------|
+  | `GROQ_API_KEY` | your Groq API key |
+  | `DATABASE_URL` | `postgresql://...` (from Render Postgres “External” or internal URL) |
+  | `CORS_ORIGINS` | `https://your-app.vercel.app` — **your front-end origin** (the site users open in the browser), *not* the Render API URL. Comma-separated, no spaces. |
+  | `SECRET_KEY` | long random string |
+
+- **Free tier:** The service may “spin down” after idle time; the first request after sleep can be slow.
+
+Point **`NEXT_PUBLIC_API_URL`** (Vercel or local) at your Render service URL, e.g. `https://nutrition-coach-api.onrender.com`.
+
+---
+
 ## Deploy frontend (Vercel)
 
-The **Next.js app** in [`frontend/`](frontend/) is intended to run on [Vercel](https://vercel.com) (or any Node host). The **FastAPI** backend must be deployed separately and reachable over **HTTPS** in production.
+The **Next.js app** in [`frontend/`](frontend/) is intended to run on [Vercel](https://vercel.com) (or any Node host). The **FastAPI** backend is usually on **Render** (above) or another host, reachable over **HTTPS**.
 
-1. **Deploy the API** (Docker, a VPS, FastAPI Cloud, etc.) and note its public origin with **no trailing slash**, e.g. `https://api.yourdomain.com`.
+1. **Note the API origin** (e.g. `https://<name>.onrender.com`) with **no trailing slash**.
 2. **CORS** on the API: set `CORS_ORIGINS` in the backend environment to your Vercel URL(s), for example:
    - `https://your-app.vercel.app`
    - Your custom domain: `https://app.yourdomain.com`
@@ -293,7 +317,8 @@ curl -s -X POST "http://127.0.0.1:8000/api/v1/chat" \
 
 ```text
 app_entry.py      # ASGI entry for ``fastapi dev`` / FastAPI Cloud / Docker (imports backend app)
-Dockerfile         # API container image
+Dockerfile         # API container image (listens on $PORT for Render, etc.)
+render.yaml        # Optional Render Blueprint for the API Web Service
 docker-compose.yml # API + PostgreSQL (optional local stack)
 env.docker.example # Template for variables used with Compose / ``docker run``
 backend/          # FastAPI app, agents, graph, database, providers

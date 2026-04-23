@@ -26,7 +26,8 @@ COPY backend/ ./backend/
 # RAG / vector paths (see config); create if your repo has no checked-in `data/` yet
 RUN mkdir -p /app/data /app/backend/uploads
 
+# Local default; Render and many hosts set PORT in the environment.
 EXPOSE 8000
 
-# One worker is typical behind a reverse proxy; increase for CPU-bound loads
-CMD ["uvicorn", "app_entry:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# shell form so $PORT is honored (Render, Railway, Fly.io, etc.)
+CMD ["sh", "-c", "uvicorn app_entry:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]

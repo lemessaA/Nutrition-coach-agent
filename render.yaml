@@ -1,0 +1,22 @@
+# Render Blueprint: Web Service (Docker) for the FastAPI API.
+# New Blueprint → connect repo → Render reads this file, or add a service manually
+# and point Dockerfile path to the repo root.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# After the first deploy, set Environment variables in the Render dashboard
+# (or link a Render Postgres and set DATABASE_URL):
+#   CORS_ORIGINS  =  https://your-frontend.vercel.app  (comma-separated; no space after commas)
+#   GROQ_API_KEY  =  (secret)
+#   DATABASE_URL  =  (Render Postgres "Internal" or external URL, not SQLite in production)
+#   SECRET_KEY    =  (random string)
+
+services:
+  - type: web
+    name: nutrition-coach-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    # Runtime injects PORT; the Dockerfile uses ${PORT:-8000} for Uvicorn.
