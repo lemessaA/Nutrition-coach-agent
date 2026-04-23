@@ -3,7 +3,6 @@
 fastapi[standard]
 langchain
 langchain-community
-langchain-openai
 langchain-groq
 langgraph
 sqlalchemy
@@ -17,7 +16,6 @@ passlib[bcrypt]
 python-dotenv
 faiss-cpu
 chromadb
-openai
 groq
 requests
 aiohttp

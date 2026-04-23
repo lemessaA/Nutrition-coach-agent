@@ -45,7 +45,7 @@ Interactive API documentation is available at [http://127.0.0.1:8000/docs](http:
 - **Client** (Next.js) calls REST endpoints under `/api/v1/`.
 - **Server** (FastAPI) authenticates and validates input with Pydantic, persists to SQLAlchemy models, and serves static uploads for marketplace images.
 - **Orchestration** uses LangGraph: user messages are classified and dispatched to the appropriate agent node.
-- **LLM** access is centralized (e.g. OpenAI or Groq) via a shared service; optional RAG/vector storage supports nutrition knowledge where configured.
+- **LLM** access uses **Groq** via a shared service; optional RAG/vector storage (FAISS/Chroma) is only active if an embedding backend is configured in `backend/rag/vector_store.py`.
 
 ```text
 Browser  →  Next.js (localhost:3000)
@@ -75,7 +75,7 @@ Backend Python dependencies are listed in `backend/pyproject.toml` and the repo-
 - **Python** 3.11 or newer  
 - **[uv](https://docs.astral.sh/uv/)** for Python packages (`uv pip`). Install: see [Getting started](https://docs.astral.sh/uv/getting-started/installation/) (e.g. `curl -LsSf https://astral.sh/uv/install.sh | sh` on Linux/macOS).  
 - **Node.js** 18 or newer and npm  
-- **API keys** for at least one LLM provider (OpenAI and/or Groq), plus any optional food APIs you want to enable  
+- **`GROQ_API_KEY`** for the chat/agents, plus any optional food APIs you want to enable  
 
 ---
 
@@ -87,9 +87,8 @@ Create a **`.env`** file in the **repository root** (same level as `requirements
 |----------|---------|
 | `DATABASE_URL` | Optional. SQLAlchemy URL for **PostgreSQL** or another server DB. You can also set `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, and optionally `POSTGRES_HOST` / `POSTGRES_PORT`; the app builds a URL (see [`.env.example`](.env.example)). If unset and `POSTGRES_*` is incomplete, the app uses **SQLite** under `backend/nutrition_coach.db`. |
 | `USE_SQLITE` | Set to `1` to **force SQLite** (ignores `POSTGRES_*` / composite URL). Use when Postgres is not running locally; otherwise the API fails at startup with *connection refused* to `localhost:5432`. |
-| `GROQ_API_KEY` or `OPENAI_API_KEY` | LLM access (set at least one, matching `LLM_PROVIDER`) |
-| `LLM_PROVIDER` | e.g. `groq` or `openai` |
-| `LLM_MODEL` | Model id for the chosen provider |
+| `GROQ_API_KEY` | Required for LLM features (see `LLM_MODEL`) |
+| `LLM_MODEL` | Groq model id (default in `config.py`: `llama-3.1-8b-instant`) |
 | `USDA_API_KEY` | Optional: USDA FoodData Central |
 | `NUTRITIONIX_APP_ID` / `NUTRITIONIX_API_KEY` | Optional: Nutritionix natural nutrients |
 | `SECRET_KEY` | Change from default for any deployment that issues tokens |

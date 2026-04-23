@@ -74,10 +74,8 @@ class Settings(BaseSettings):
     # optionally POSTGRES_HOST, POSTGRES_PORT). Default is a local SQLite file in backend/.
     database_url: str = Field(default_factory=_resolve_database_url)
 
-    # LLM Configuration
-    openai_api_key: Optional[str] = None
+    # LLM (Groq only; see ``services/llm_service.py``)
     groq_api_key: Optional[str] = None
-    llm_provider: str = "groq"  # openai, groq
     llm_model: str = "llama-3.1-8b-instant"
 
     # Vector Database

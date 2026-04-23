@@ -2,7 +2,6 @@ from typing import Optional, Dict, Any
 import json
 import re
 from langchain_core.language_models.llms import LLM
-from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from config import settings
@@ -78,27 +77,14 @@ class LLMService:
     def _initialize_llm(self) -> Optional[LLM]:
         """Initialize the LLM based on configuration"""
         try:
-            if settings.llm_provider == "openai":
-                if not settings.openai_api_key or settings.openai_api_key == "dummy_key_for_testing":
-                    print("Warning: OpenAI API key not configured, using mock responses")
-                    return None
-                return ChatOpenAI(
-                    model=settings.llm_model,
-                    openai_api_key=settings.openai_api_key,
-                    temperature=0.7
-                )
-            elif settings.llm_provider == "groq":
-                if not settings.groq_api_key or settings.groq_api_key == "dummy_key_for_testing":
-                    print("Warning: Groq API key not configured, using mock responses")
-                    return None
-                return ChatGroq(
-                    model=settings.llm_model,
-                    groq_api_key=settings.groq_api_key,
-                    temperature=0.7
-                )
-            else:
-                print(f"Warning: Unsupported LLM provider: {settings.llm_provider}, using mock responses")
+            if not settings.groq_api_key or settings.groq_api_key == "dummy_key_for_testing":
+                print("Warning: Groq API key not configured, using mock responses")
                 return None
+            return ChatGroq(
+                model=settings.llm_model,
+                groq_api_key=settings.groq_api_key,
+                temperature=0.7
+            )
         except Exception as e:
             print(f"Warning: Failed to initialize LLM: {e}, using mock responses")
             return None
@@ -142,8 +128,8 @@ class LLMService:
     ) -> Dict[str, Any]:
         """Generate a structured response from the LLM.
 
-        Uses provider JSON mode when available (Groq / OpenAI chat models both
-        support ``response_format={"type": "json_object"}``) and falls back to
+        Uses provider JSON mode when available (Groq supports
+        ``response_format={"type": "json_object"}``) and falls back to
         tolerant JSON extraction for plain-text responses.
         """
         if output_schema is None:

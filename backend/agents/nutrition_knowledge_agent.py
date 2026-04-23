@@ -113,7 +113,7 @@ class NutritionKnowledgeAgent(BaseAgent):
                 category_docs = knowledge_base.get_knowledge_by_category(category)
                 if category_docs:
                     # Create temporary vector store with category docs
-                    from backend.rag.vector_store import VectorStore
+                    from rag.vector_store import VectorStore
                     temp_store = VectorStore()
                     temp_store.vector_store.add_documents(category_docs)
                     results = temp_store.similarity_search_with_score(query, k=k)

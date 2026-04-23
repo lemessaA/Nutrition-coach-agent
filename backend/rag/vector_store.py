@@ -1,26 +1,21 @@
 from typing import List, Dict, Any, Optional
 from langchain_core.documents import Document
-from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.vectorstores import Chroma
 from config import settings
-import json
 import os
 
 
 class VectorStore:
-    """Manages vector storage for nutrition knowledge base"""
-    
-    def __init__(self):
-        try:
-            if settings.openai_api_key and settings.openai_api_key != "dummy_key_for_testing":
-                self.embeddings = OpenAIEmbeddings(openai_api_key=settings.openai_api_key)
-            else:
-                print("Warning: OpenAI API key not configured, vector store disabled")
-                self.embeddings = None
-        except Exception as e:
-            print(f"Warning: Failed to initialize embeddings: {e}")
-            self.embeddings = None
+    """FAISS/Chroma storage for the nutrition RAG path.
+
+    No embedding backend is configured in this project (the chat LLM is Groq only).
+    The vector store stays inert until an embedding class is wired here (e.g. local
+    HuggingFace models); RAG then calls ``initialize_store()``.
+    """
+
+    def __init__(self) -> None:
+        self.embeddings: Optional[object] = None
         
         self.vector_store = None
         self.initialized = False
@@ -57,7 +52,6 @@ class VectorStore:
         except Exception as e:
             print(f"Warning: Failed to initialize vector store: {e}")
             self.vector_store = None
-            raise ValueError(f"Unsupported vector store type: {settings.vector_db_type}")
     
     def save_store(self):
         """Save the vector store to disk"""
