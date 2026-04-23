@@ -30,11 +30,22 @@ def _normalize_postgres_url(url: str) -> str:
     return u
 
 
+def _env_flag(name: str) -> bool:
+    v = (os.environ.get(name) or "").strip().lower()
+    return v in ("1", "true", "yes", "on")
+
+
 def _resolve_database_url() -> str:
     """
-    Order: ``DATABASE_URL`` / ``database_url`` env, then ``POSTGRES_*`` parts
-    (local Docker-style .env), else SQLite in ``backend/``.
+    Order: ``USE_SQLITE`` → SQLite; ``DATABASE_URL``; ``POSTGRES_*`` composite URL;
+    else SQLite in ``backend/``.
+
+    If you have ``POSTGRES_*`` in ``.env`` but no server on that host (e.g. Postgres
+    not started locally), set ``USE_SQLITE=1`` or comment those vars, or use Docker
+    to run Postgres.
     """
+    if _env_flag("USE_SQLITE"):
+        return _default_sqlite_url()
     raw = (os.environ.get("DATABASE_URL") or "").strip()
     if raw:
         if raw.startswith("sqlite"):

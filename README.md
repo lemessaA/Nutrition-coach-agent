@@ -85,7 +85,8 @@ Create a **`.env`** file in the **repository root** (same level as `requirements
 
 | Variable | Purpose |
 |----------|---------|
-| `DATABASE_URL` | Optional. SQLAlchemy URL for **PostgreSQL** or another server DB. If unset, the app defaults to a **SQLite** file under `backend/nutrition_coach.db` (path resolved from `config.py`, not the shell cwd). |
+| `DATABASE_URL` | Optional. SQLAlchemy URL for **PostgreSQL** or another server DB. You can also set `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, and optionally `POSTGRES_HOST` / `POSTGRES_PORT`; the app builds a URL (see [`.env.example`](.env.example)). If unset and `POSTGRES_*` is incomplete, the app uses **SQLite** under `backend/nutrition_coach.db`. |
+| `USE_SQLITE` | Set to `1` to **force SQLite** (ignores `POSTGRES_*` / composite URL). Use when Postgres is not running locally; otherwise the API fails at startup with *connection refused* to `localhost:5432`. |
 | `GROQ_API_KEY` or `OPENAI_API_KEY` | LLM access (set at least one, matching `LLM_PROVIDER`) |
 | `LLM_PROVIDER` | e.g. `groq` or `openai` |
 | `LLM_MODEL` | Model id for the chosen provider |

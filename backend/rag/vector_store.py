@@ -68,6 +68,8 @@ class VectorStore:
     
     def add_documents(self, documents: List[Document]) -> bool:
         """Add documents to the vector store"""
+        if not self.vector_store:
+            return False
         try:
             if settings.vector_db_type == "faiss":
                 self.vector_store.add_documents(documents)
@@ -82,6 +84,8 @@ class VectorStore:
     
     def similarity_search(self, query: str, k: int = 5) -> List[Document]:
         """Search for similar documents"""
+        if not self.vector_store:
+            return []
         try:
             return self.vector_store.similarity_search(query, k=k)
         except Exception as e:
@@ -90,6 +94,8 @@ class VectorStore:
     
     def similarity_search_with_score(self, query: str, k: int = 5) -> List[tuple]:
         """Search for similar documents with relevance scores"""
+        if not self.vector_store:
+            return []
         try:
             return self.vector_store.similarity_search_with_score(query, k=k)
         except Exception as e:
