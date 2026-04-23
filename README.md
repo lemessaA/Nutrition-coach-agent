@@ -297,7 +297,7 @@ Dockerfile         # API container image
 docker-compose.yml # API + PostgreSQL (optional local stack)
 env.docker.example # Template for variables used with Compose / ``docker run``
 backend/          # FastAPI app, agents, graph, database, providers
-frontend/         # Next.js app (app router, components, services)
+frontend/         # Next.js app (Vercel: use this folder as root; includes vercel.json)
 data/             # Local datasets and assets used by tools (where applicable)
 tests/            # Python tests
 pyproject.toml    # Project metadata, dependencies, and [tool.fastapi] entrypoint
