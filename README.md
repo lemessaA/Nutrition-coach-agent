@@ -146,12 +146,12 @@ Open [http://localhost:3000](http://localhost:3000). Ensure `NEXT_PUBLIC_API_URL
 
 The database is initialized on application startup (FastAPI lifespan).
 
-### Run from the repository root (same entry as FastAPI Cloud)
+### `app_entry` and the FastAPI CLI (from `backend/`)
 
-The ASGI app is also exposed as **`app_entry:app`**, with `sys.path` adjusted so the code in `backend/` keeps working. This matches the `[tool.fastapi]` entrypoint in `backend/pyproject.toml`:
+The ASGI app is also exposed as **`app_entry:app`**, with `sys.path` adjusted so the same `backend/` imports as `main:app` work. This matches the `[tool.fastapi]` entrypoint in `backend/pyproject.toml`:
 
 ```bash
-# From the repository root (not only from backend/)
+cd backend
 fastapi dev
 # or: uvicorn app_entry:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -162,7 +162,7 @@ If `fastapi` is not found, install the CLI with: `uv pip install "fastapi[standa
 
 ## Backend on Render
 
-The API runs on [Render](https://render.com) as a **Web Service** with the **Python** runtime. The repo includes [`render.yaml`](render.yaml) ([Blueprint spec](https://render.com/docs/blueprint-spec)). The build runs **`uv pip install --system -r requirements.txt`** (after installing `uv` with `pip`) so the same lockfile as local dev is used; the start command is `uvicorn app_entry:app` on `$PORT`.
+The API runs on [Render](https://render.com) as a **Web Service** with the **Python** runtime. The repo includes [`render.yaml`](render.yaml) ([Blueprint spec](https://render.com/docs/blueprint-spec)). The build runs **`uv pip install --system -r requirements.txt`** (after installing `uv` with `pip`) so the same `requirements.txt` as local dev is used; the start command runs from **`backend/`**: `cd backend && uvicorn app_entry:app` on `$PORT`. (Render’s image uses `pip` only to install `uv`; project dependencies are installed with **`uv pip`**.)
 
 - **URL:** `https://<service-name>.onrender.com` (or a custom domain). **No trailing slash.**
 - **Health check:** path **`/health`**.
@@ -219,7 +219,7 @@ The **Next.js app** in [`frontend/`](frontend/) is intended to run on [Vercel](h
 
 ## FastAPI Cloud deployment
 
-[FastAPI Cloud](https://fastapicloud.com/) runs your FastAPI app with `fastapi deploy` and the [FastAPI Cloud CLI](https://fastapicloud.com/docs/fastapi-cloud-cli/deploy/) (bundled with `fastapi[standard]`). This repository is set up to deploy **from the repository root** so you do not need a separate `main.py` at the top level: see [`app_entry.py`](app_entry.py) and `[tool.fastapi]` in [`pyproject.toml`](pyproject.toml).
+[FastAPI Cloud](https://fastapicloud.com/) runs your FastAPI app with `fastapi deploy` and the [FastAPI Cloud CLI](https://fastapicloud.com/docs/fastapi-cloud-cli/deploy/) (bundled with `fastapi[standard]`). The app entry is [`backend/app_entry.py`](backend/app_entry.py) with `[tool.fastapi]` in [`backend/pyproject.toml`](backend/pyproject.toml). Run **`fastapi deploy` from the `backend/` directory** (or point FastAPI Cloud at `backend` as the app root) so the CLI finds `pyproject.toml` and the `app_entry:app` entrypoint.
 
 1. **Install** the CLI (in a venv is recommended):
    ```bash
@@ -237,8 +237,9 @@ The **Next.js app** in [`frontend/`](frontend/) is intended to run on [Vercel](h
    fastapi cloud env set SECRET_KEY "a-long-random-string"
    ```
    Use [`fastapi cloud env set`](https://fastapicloud.com/docs/fastapi-cloud-cli/) for the full set of subcommands, or set variables in the [dashboard](https://dashboard.fastapicloud.com/) under your app.
-4. **Deploy** from the **repository root**:
+4. **Deploy** from the **`backend/`** directory (where `pyproject.toml` and `app_entry` live):
    ```bash
+   cd backend
    fastapi deploy
    ```
    A `.fastapicloud` directory is created to link this project to your cloud app. Subsequent updates are a single `fastapi deploy`.
@@ -283,9 +284,9 @@ curl -s -X POST "http://127.0.0.1:8000/api/v1/chat" \
 ## Project layout
 
 ```text
-app_entry.py      # ASGI entry for ``fastapi dev`` / FastAPI Cloud / Render (imports backend app)
 render.yaml        # Optional Render Blueprint (Python) for the API
 backend/          # FastAPI app, agents, graph, database, providers; ``backend/pyproject.toml`` metadata
+backend/app_entry.py  # ASGI entry for ``fastapi dev`` / FastAPI Cloud / Render (re-exports ``main:app``)
 frontend/         # Next.js app (Vercel: use this folder as root; includes vercel.json)
 data/             # Local datasets and assets used by tools (where applicable)
 tests/            # Python tests

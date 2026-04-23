@@ -38,8 +38,8 @@ dependencies = [
 [tool.setuptools]
 py-modules = []
 
-# FastAPI CLI / FastAPI Cloud: resolve the app from the repo root without
-# passing ``backend/main.py`` on the command line.
+# FastAPI CLI / FastAPI Cloud: ``fastapi dev`` from ``backend/`` loads this
+# without passing ``main.py`` on the command line.
 # https://fastapicloud.com/docs/builds-and-deployments/configuring-fastapi/
 [tool.fastapi]
 entrypoint = "app_entry:app"
