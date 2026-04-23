@@ -297,7 +297,7 @@ requirements.txt  # Python deps (install: ``uv pip install -r requirements.txt``
 ## Testing
 
 ```bash
-# From repository root, with the virtual environment activated
+# With ``.venv`` active (``uv venv`` + ``uv pip install -r requirements.txt`` from the repo root):
 pytest tests/ -q
 ```
 
