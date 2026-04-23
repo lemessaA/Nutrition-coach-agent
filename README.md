@@ -162,7 +162,9 @@ If `fastapi` is not found, install the CLI with: `uv pip install "fastapi[standa
 
 ## Backend on Render
 
-The API runs on [Render](https://render.com) as a **Web Service** with the **Python** runtime. The repo includes [`render.yaml`](render.yaml) ([Blueprint spec](https://render.com/docs/blueprint-spec)). The build runs **`uv pip install --system -r requirements.txt`** (after installing `uv` with `pip`) so the same `requirements.txt` as local dev is used; the start command runs from **`backend/`**: `cd backend && uvicorn app_entry:app` on `$PORT`. (Render’s image uses `pip` only to install `uv`; project dependencies are installed with **`uv pip`**.)
+The API runs on [Render](https://render.com) as a **Web Service** with the **Python** runtime. The repo includes [`render.yaml`](render.yaml) ([Blueprint spec](https://render.com/docs/blueprint-spec)). The build runs **`uv pip install --system -r requirements.txt`** (after installing `uv` with `pip`) so the same `requirements.txt` as local dev is used; the start command runs from **`backend/`** using `python -m uvicorn` (reliable on Render’s PATH). (Render’s image uses `pip` only to install `uv`; project dependencies are installed with **`uv pip`**.)
+
+**Monorepo:** the API service’s **Root Directory** must be the **repository root** (empty in the dashboard, or `rootDir: "."` in the Blueprint) — **not** `frontend/`. If Render picks **Node** and logs `frontend/package.json`, Python deps (including Uvicorn) are never installed and the start command will fail.
 
 - **URL:** `https://<service-name>.onrender.com` (or a custom domain). **No trailing slash.**
 - **Health check:** path **`/health`**.
@@ -191,6 +193,13 @@ The API runs on [Render](https://render.com) as a **Web Service** with the **Pyt
 | `DATABASE_URL` | Set automatically from the Blueprint’s Postgres; or paste the **Internal** URL if you set up the service without the `databases` block in [`render.yaml`](render.yaml) |
 | `CORS_ORIGINS` | Browsers’ origins (Vercel), not the API URL. |
 | `SECRET_KEY` | Blueprint can generate one; you may override in the dashboard. |
+
+**Troubleshooting: `uvicorn: command not found` or Node.js in the deploy log**
+
+- In the service **Settings**, set **Root Directory** to empty (repo root), **not** `frontend`.
+- **Runtime** / **Environment** should be the **Python** build from the Blueprint, not a standalone Node/Next.js service for this app.
+- After fixing, **Manual Deploy** so the build runs `pip` / `uv pip install` from the root `requirements.txt`. The [`render.yaml`](render.yaml) `startCommand` uses `python -m uvicorn` so the CLI need not be on `PATH`.
+- The Next.js app belongs on [Vercel](https://vercel.com) (see below); this Render service is only the FastAPI API.
 
 ---
 

@@ -6,6 +6,9 @@
 #
 # Build: pip bootstraps uv, then uv pip installs from repo-root requirements.txt
 # (Render’s image has pip; project deps use uv pip).
+#
+# Root Directory must be the REPOSITORY ROOT (not `frontend`). If you see Node.js
+# in deploy logs, clear Root Directory in the dashboard so Python + requirements.txt apply.
 
 databases:
   - name: nutrition-coach-db
@@ -20,7 +23,8 @@ services:
     plan: free
     region: oregon
     buildCommand: pip install --upgrade pip && pip install uv && uv pip install --system -r requirements.txt
-    startCommand: cd backend && uvicorn app_entry:app --host 0.0.0.0 --port $PORT --workers 1
+    # `python -m uvicorn` — works when the `uvicorn` script is not on PATH; requires Python deps from build
+    startCommand: cd backend && python -m uvicorn app_entry:app --host 0.0.0.0 --port $PORT --workers 1
     healthCheckPath: /health
     envVars:
       - key: CORS_ORIGINS
