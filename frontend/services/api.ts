@@ -1,6 +1,7 @@
-// API service for centralized backend communication
+import { getPublicApiUrl } from "@/lib/public-api-url"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+// API service for centralized backend communication
+const API_BASE_URL = getPublicApiUrl()
 
 // Generic API request function
 export async function apiRequest<T = any>(

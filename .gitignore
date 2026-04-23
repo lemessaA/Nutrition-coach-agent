@@ -37,6 +37,9 @@ htmlcov/
 backend/uploads/*
 !backend/uploads/.gitkeep
 
+# Vercel CLI local link
+.vercel
+
 # OS / IDE
 .DS_Store
 Thumbs.db

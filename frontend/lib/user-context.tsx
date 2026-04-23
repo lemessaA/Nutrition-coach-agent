@@ -1,6 +1,7 @@
 "use client"
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react"
+import { getPublicApiUrl } from "@/lib/public-api-url"
 
 type HealthProfile = {
   age?: number
@@ -125,9 +126,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") window.localStorage.removeItem(STORAGE_KEY)
   }, [])
 
-  const apiUrl =
-    (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_URL) ||
-    "http://localhost:8000"
+  const apiUrl = getPublicApiUrl()
 
   const value: UserContextValue = {
     ...state,
