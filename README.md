@@ -161,24 +161,37 @@ If `fastapi` is not found, install the CLI with: `pip install "fastapi[standard]
 
 ## Backend on Render
 
-The API runs well on [Render](https://render.com) as a **Web Service** with the **Python** runtime. A starter [Blueprint](https://render.com/docs/blueprint-spec) is in [`render.yaml`](render.yaml) (build: `pip install -r requirements.txt`, start: `uvicorn app_entry:app` on `$PORT`), or create a service manually and use the same commands.
+The API runs on [Render](https://render.com) as a **Web Service** with the **Python** runtime. The repo includes [`render.yaml`](render.yaml) ([Blueprint spec](https://render.com/docs/blueprint-spec)): `pip install -r requirements.txt` and `uvicorn app_entry:app` on `$PORT`.
 
-- **URL:** Your public base URL looks like `https://<service-name>.onrender.com` (or a custom domain). **No trailing slash.**
-- **Port:** Render sets the `PORT` environment variable. The start command in [`render.yaml`](render.yaml) runs Uvicorn on that port.
-- **Health check:** In Render, set the health check path to **`/health`** (returned by FastAPI in [`backend/main.py`](backend/main.py)).
-- **Database:** Add a [Render PostgreSQL](https://render.com/docs/databases) instance (or any external URL) and set **`DATABASE_URL`** in the service **Environment** tab. Do not rely on the default SQLite file for production.
-- **Secrets & CORS in Render (Environment):**
+- **URL:** `https://<service-name>.onrender.com` (or a custom domain). **No trailing slash.**
+- **Health check:** path **`/health`**.
+- **Database:** Add [Render PostgreSQL](https://render.com/docs/databases) and set **`DATABASE_URL`** to the **Internal** connection string (web service and DB in the same region). Do not use the default SQLite path in production; Render filesystems for free web services are not durable for a DB file.
+- **Free tier:** The web service may spin down when idle; the first request can be slow.
 
-  | Key | Example value |
-  |-----|-----------------|
-  | `GROQ_API_KEY` | your Groq API key |
-  | `DATABASE_URL` | `postgresql://...` (from Render Postgres “External” or internal URL) |
-  | `CORS_ORIGINS` | `https://your-app.vercel.app` — **your front-end origin** (the site users open in the browser), *not* the Render API URL. Comma-separated, no spaces. |
-  | `SECRET_KEY` | long random string |
+### Deploy the API and connect [Vercel](https://vercel.com) (this project)
 
-- **Free tier:** The service may “spin down” after idle time; the first request after sleep can be slow.
+**Frontend in production:** [https://nutrition-coach-agent-kappa.vercel.app/](https://nutrition-coach-agent-kappa.vercel.app/)
 
-Point **`NEXT_PUBLIC_API_URL`** (Vercel or local) at your Render service URL, e.g. `https://nutrition-coach-api.onrender.com`.
+1. **Push** this repository to GitHub (if it is not already).
+2. In [Render Dashboard](https://dashboard.render.com) → **New +** → **Blueprint** (or **Web Service** if you prefer manual setup) → connect the repo. Render will read [`render.yaml`](render.yaml).
+3. When prompted, set:
+   - **`GROQ_API_KEY`** — your [Groq](https://console.groq.com) API key (required for chat/agents).
+   - **`DATABASE_URL`** — after you create a **PostgreSQL** instance (Render: **New +** → **PostgreSQL**), paste the **Internal Database URL** into the web service environment (same region as the service).
+4. **`CORS_ORIGINS`** in [`render.yaml`](render.yaml) already includes `https://nutrition-coach-agent-kappa.vercel.app` plus local `http://localhost:3000` / `http://127.0.0.1:3000`. Add more origins (e.g. Vercel preview URLs) in the **Environment** tab as a comma-separated list, **no spaces** after commas.
+5. **Deploy** the web service. Copy its URL, e.g. `https://nutrition-coach-api.onrender.com` (your name may differ).
+6. In [Vercel](https://vercel.com) → your project **nutrition-coach-agent** (or the linked repo) → **Settings** → **Environment Variables** → set  
+   `NEXT_PUBLIC_API_URL` = `https://<your-render-service>.onrender.com`  
+   (no trailing slash). Apply to **Production** (and **Preview** if you want previews to call the same API). **Redeploy** the frontend so the new URL is embedded in the client bundle.
+7. Test: open the Vercel site, sign in, chat — requests should go to the Render host. Check browser devtools **Network** if something fails (often CORS or a wrong `NEXT_PUBLIC_API_URL`).
+
+**Secrets in Render (Environment):**
+
+| Key | Notes |
+|-----|--------|
+| `GROQ_API_KEY` | Set in the dashboard when deploying. |
+| `DATABASE_URL` | Render Postgres internal URL, or any accessible `postgresql://…` |
+| `CORS_ORIGINS` | Browsers’ origins (Vercel), not the API URL. |
+| `SECRET_KEY` | Blueprint can generate one; you may override in the dashboard. |
 
 ---
 
