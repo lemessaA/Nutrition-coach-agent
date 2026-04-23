@@ -1,5 +1,7 @@
+import os
 from pathlib import Path
 from typing import Optional
+from urllib.parse import quote_plus, urlunparse
 
 from dotenv import load_dotenv
 from pydantic import Field
@@ -20,6 +22,36 @@ def _default_sqlite_url() -> str:
     return f"sqlite:///{p.as_posix()}"
 
 
+def _normalize_postgres_url(url: str) -> str:
+    """SQLAlchemy expects ``postgresql://``; some hosts emit ``postgres://``."""
+    u = url.strip()
+    if u.startswith("postgres://"):
+        u = "postgresql://" + u[len("postgres://") :]
+    return u
+
+
+def _resolve_database_url() -> str:
+    """
+    Order: ``DATABASE_URL`` / ``database_url`` env, then ``POSTGRES_*`` parts
+    (local Docker-style .env), else SQLite in ``backend/``.
+    """
+    raw = (os.environ.get("DATABASE_URL") or "").strip()
+    if raw:
+        if raw.startswith("sqlite"):
+            return raw
+        return _normalize_postgres_url(raw)
+    user = (os.environ.get("POSTGRES_USER") or "").strip()
+    password = os.environ.get("POSTGRES_PASSWORD")
+    host = (os.environ.get("POSTGRES_HOST") or "localhost").strip() or "localhost"
+    port = (os.environ.get("POSTGRES_PORT") or "5432").strip() or "5432"
+    db = (os.environ.get("POSTGRES_DB") or "").strip()
+    if user and password is not None and db:
+        auth = f"{user}:{quote_plus(str(password))}"
+        netloc = f"{auth}@{host}:{port}"
+        return urlunparse(("postgresql", netloc, f"/{db}", "", "", ""))
+    return _default_sqlite_url()
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=_ENV_FILE,
@@ -27,8 +59,9 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # Set DATABASE_URL in .env for Postgres. Default is a local SQLite file in backend/.
-    database_url: str = Field(default_factory=_default_sqlite_url)
+    # Set DATABASE_URL, or set POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB (and
+    # optionally POSTGRES_HOST, POSTGRES_PORT). Default is a local SQLite file in backend/.
+    database_url: str = Field(default_factory=_resolve_database_url)
 
     # LLM Configuration
     openai_api_key: Optional[str] = None
