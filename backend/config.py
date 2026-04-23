@@ -11,6 +11,8 @@ _ENV_FILE = _ROOT / ".env"
 
 # Load so non-Pydantic code and libraries see the same values as `Settings`
 load_dotenv(_ENV_FILE)
+# Also load ``backend/.env`` when present (repo root is canonical; this fills gaps for local dev).
+load_dotenv(Path(__file__).resolve().parent / ".env", override=False)
 
 
 def _default_sqlite_url() -> str:
