@@ -166,20 +166,18 @@ The API runs on [Render](https://render.com) as a **Web Service** with the **Pyt
 
 - **URL:** `https://<service-name>.onrender.com` (or a custom domain). **No trailing slash.**
 - **Health check:** path **`/health`**.
-- **Database:** Add [Render PostgreSQL](https://render.com/docs/databases) and set **`DATABASE_URL`** to the **Internal** connection string (web service and DB in the same region). Do not use the default SQLite path in production; Render filesystems for free web services are not durable for a DB file.
+- **Database:** The [`render.yaml`](render.yaml) Blueprint provisions a free **[Render PostgreSQL](https://render.com/docs/databases)** (`nutrition-coach-db`) in the same region and wires **`DATABASE_URL`** via `fromDatabase` (internal connection string). If you add the API without the Blueprint, create Postgres manually and set **`DATABASE_URL`** to the **Internal** URL. Do not rely on SQLite in production on Render; web service filesystems on the free tier are not durable.
 - **Free tier:** The web service may spin down when idle; the first request can be slow.
 
 ### Deploy the API and connect [Vercel](https://vercel.com) (this project)
 
 **Frontend in production:** [https://nutrition-coach-agent-kappa.vercel.app/](https://nutrition-coach-agent-kappa.vercel.app/)
 
-1. **Push** this repository to GitHub (if it is not already).
-2. In [Render Dashboard](https://dashboard.render.com) → **New +** → **Blueprint** (or **Web Service** if you prefer manual setup) → connect the repo. Render will read [`render.yaml`](render.yaml).
-3. When prompted, set:
-   - **`GROQ_API_KEY`** — your [Groq](https://console.groq.com) API key (required for chat/agents).
-   - **`DATABASE_URL`** — after you create a **PostgreSQL** instance (Render: **New +** → **PostgreSQL**), paste the **Internal Database URL** into the web service environment (same region as the service).
+1. **Push** this repository to GitHub (if it is not already) so Render can clone it.
+2. In [Render Dashboard](https://dashboard.render.com) → **New +** → **Blueprint** → connect the repo. Render will read [`render.yaml`](render.yaml) and create the **web service** plus the **`nutrition-coach-db`** PostgreSQL instance; **`DATABASE_URL`** is set automatically.
+3. When the Blueprint form asks for a secret, set **`GROQ_API_KEY`** — your [Groq](https://console.groq.com) key (required for chat/agents). You can also set it later under the service’s **Environment** tab.
 4. **`CORS_ORIGINS`** in [`render.yaml`](render.yaml) already includes `https://nutrition-coach-agent-kappa.vercel.app` plus local `http://localhost:3000` / `http://127.0.0.1:3000`. Add more origins (e.g. Vercel preview URLs) in the **Environment** tab as a comma-separated list, **no spaces** after commas.
-5. **Deploy** the web service. Copy its URL, e.g. `https://nutrition-coach-api.onrender.com` (your name may differ).
+5. **Deploy**; wait for the first build to finish. Copy the service URL, e.g. `https://nutrition-coach-api.onrender.com` (name may differ from `render.yaml` if you renamed it in the dashboard).
 6. In [Vercel](https://vercel.com) → your project **nutrition-coach-agent** (or the linked repo) → **Settings** → **Environment Variables** → set  
    `NEXT_PUBLIC_API_URL` = `https://<your-render-service>.onrender.com`  
    (no trailing slash). Apply to **Production** (and **Preview** if you want previews to call the same API). **Redeploy** the frontend so the new URL is embedded in the client bundle.
@@ -190,7 +188,7 @@ The API runs on [Render](https://render.com) as a **Web Service** with the **Pyt
 | Key | Notes |
 |-----|--------|
 | `GROQ_API_KEY` | Set in the dashboard when deploying. |
-| `DATABASE_URL` | Render Postgres internal URL, or any accessible `postgresql://…` |
+| `DATABASE_URL` | Set automatically from the Blueprint’s Postgres; or paste the **Internal** URL if you set up the service without the `databases` block in [`render.yaml`](render.yaml) |
 | `CORS_ORIGINS` | Browsers’ origins (Vercel), not the API URL. |
 | `SECRET_KEY` | Blueprint can generate one; you may override in the dashboard. |
 

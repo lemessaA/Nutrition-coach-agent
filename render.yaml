@@ -1,13 +1,17 @@
 # Render Blueprint — FastAPI (Python) for Nutrition Coach
 # https://render.com/docs/blueprint-spec
 #
-# After deploy, set in the dashboard (or at first import) any missing secrets:
-#   GROQ_API_KEY   — required for LLM features
-#   DATABASE_URL  — from Render PostgreSQL: New → PostgreSQL, then copy "Internal" URL
-#                   (do not use SQLite in production; disk is ephemeral on free web services)
-# SECRET_KEY can be auto-filled if you use generateValue below; you may override.
+# Apply: Dashboard → New + → Blueprint → connect this repo. Set GROQ_API_KEY when asked.
+# DATABASE_URL is set automatically from the Render Postgres below (internal connection).
 #
-# Build: pip bootstraps uv, then uv pip installs into Render's Python (see docs/uv in README).
+# Build: pip bootstraps uv, then uv pip installs from repo-root requirements.txt
+# (Render’s image has pip; project deps use uv pip).
+
+databases:
+  - name: nutrition-coach-db
+    plan: free
+    region: oregon
+    # Optional: set databaseName / user; defaults are fine for a new app
 
 services:
   - type: web
@@ -19,12 +23,13 @@ services:
     startCommand: cd backend && uvicorn app_entry:app --host 0.0.0.0 --port $PORT --workers 1
     healthCheckPath: /health
     envVars:
-      # Vercel production + local dev; add preview URLs if you use them
       - key: CORS_ORIGINS
         value: "https://nutrition-coach-agent-kappa.vercel.app,http://localhost:3000,http://127.0.0.1:3000"
       - key: GROQ_API_KEY
         sync: false
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: nutrition-coach-db
+          property: connectionString
       - key: SECRET_KEY
         generateValue: true
